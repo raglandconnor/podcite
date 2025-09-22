@@ -111,3 +111,6 @@ claude_*.md
 gpt_*.md
 gemini_*.md
 anthropic_*.md
+
+# Other
+misc
