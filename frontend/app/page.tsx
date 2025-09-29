@@ -140,56 +140,22 @@ export default function Home() {
                   {Math.floor(parseInt(data.episode.duration) / 60)} minutes
                 </div>
               </div>
-              <div className='mt-4'>
-                <a
-                  href={data.episode.audio_url}
-                  className='text-blue-600 hover:underline'
-                  target='_blank'
-                  rel='noopener noreferrer'
-                >
-                  Audio URL
-                </a>
-              </div>
-            </div>
 
-            {/* Audio Download Info */}
-            {data.audio_download && (
-              <div className='bg-white p-6 rounded-lg shadow'>
-                <h2 className='text-xl font-semibold mb-4'>Audio Download</h2>
-                <div className='grid grid-cols-2 gap-4 text-sm'>
-                  <div>
-                    <span className='font-medium'>Status:</span>
-                    <span
-                      className={`ml-2 px-2 py-1 rounded ${
-                        data.audio_download.status === "success"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {data.audio_download.status}
-                    </span>
-                  </div>
-                  <div>
-                    <span className='font-medium'>Size:</span>{" "}
-                    {(data.audio_download.size_bytes / 1024 / 1024).toFixed(1)}{" "}
-                    MB
-                  </div>
-                  <div>
-                    <span className='font-medium'>File:</span>{" "}
-                    {data.audio_download.filename}
-                  </div>
-                  <div>
-                    <span className='font-medium'>Type:</span>{" "}
-                    {data.audio_download.content_type}
-                  </div>
-                </div>
-                {data.audio_download.error && (
-                  <div className='mt-2 text-red-600'>
-                    Error: {data.audio_download.error}
+              {/* Audio Player */}
+              {data.audio_download.status === "success" &&
+                data.audio_download.filename && (
+                  <div className='mt-6'>
+                    <h3 className='font-medium mb-3'>Listen to Episode</h3>
+                    <audio controls className='w-full' preload='metadata'>
+                      <source
+                        src={`http://localhost:8000/media/${data.audio_download.filename}`}
+                        type={data.audio_download.content_type}
+                      />
+                      Your browser does not support the audio element.
+                    </audio>
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
