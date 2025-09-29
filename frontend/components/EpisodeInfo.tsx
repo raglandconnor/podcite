@@ -11,7 +11,6 @@ interface TranscriptionChunk {
     end: number;
     text: string;
   }>;
-  time_offset: number;
   error?: string;
 }
 
@@ -31,6 +30,7 @@ interface EpisodeInfoProps {
     error: string | null;
   };
   onAudioPlay: () => void;
+  currentTime: number;
 }
 
 const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
@@ -43,6 +43,7 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
       audioDownload,
       transcription,
       onAudioPlay,
+      currentTime,
     },
     ref
   ) => {
@@ -67,9 +68,6 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
             ref={ref}
             filename={audioDownload.filename}
             contentType={audioDownload.contentType}
-            isTranscribing={transcription.isTranscribing}
-            transcriptionCompleted={false}
-            transcriptionChunksLength={transcription.chunks.length}
             onPlay={onAudioPlay}
           />
         )}
@@ -79,6 +77,7 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
           chunks={transcription.chunks}
           isTranscribing={transcription.isTranscribing}
           error={transcription.error}
+          currentTime={currentTime}
         />
       </div>
     );

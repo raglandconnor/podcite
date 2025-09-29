@@ -40,7 +40,6 @@ interface TranscriptionChunk {
     end: number;
     text: string;
   }>;
-  time_offset: number;
   error?: string;
 }
 
@@ -59,6 +58,7 @@ export default function Home() {
   });
 
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const parseRSS = async () => {
     if (!rssUrl) return;
@@ -109,8 +109,6 @@ export default function Home() {
       chunks: [],
       completed: false,
     }));
-
-    console.log("Starting transcription for:", filename);
 
     const eventSource = new EventSource(
       `http://localhost:8000/api/v1/transcription/transcribe/${filename}`
@@ -180,7 +178,6 @@ export default function Home() {
       stream: null,
       isTranscribing: false,
     }));
-    console.log("Transcription stopped");
   };
 
   const handleAudioPlay = () => {
@@ -193,6 +190,22 @@ export default function Home() {
       startTranscription(data.audio_download.filename);
     }
   };
+
+  // Track audio currentTime
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+
+    return () => {
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, [data?.audio_download.filename]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -244,6 +257,7 @@ export default function Home() {
               }}
               transcription={transcription}
               onAudioPlay={handleAudioPlay}
+              currentTime={currentTime}
             />
           </div>
         )}
