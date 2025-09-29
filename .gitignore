@@ -114,3 +114,5 @@ anthropic_*.md
 
 # Other
 misc
+docs
+backend/media

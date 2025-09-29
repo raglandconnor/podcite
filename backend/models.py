@@ -21,11 +21,22 @@ class Episode(BaseModel):
     episode_index: int
 
 
+class AudioDownloadResponse(BaseModel):
+    """Response model for audio download status."""
+    status: str  # "success", "error", "skipped"
+    file_path: Optional[str] = None
+    filename: Optional[str] = None
+    content_type: Optional[str] = None
+    size_bytes: Optional[int] = None
+    error: Optional[str] = None
+
+
 class RSSParseResponse(BaseModel):
     """Response model for RSS feed parsing."""
     podcast: PodcastInfo
     episode: Episode
     total_episodes_in_feed: int
+    audio_download: AudioDownloadResponse
 
 
 class HealthResponse(BaseModel):
