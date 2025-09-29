@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface PodcastData {
   podcast: {
@@ -28,11 +28,36 @@ interface PodcastData {
   };
 }
 
+interface TranscriptionSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+interface TranscriptionChunk {
+  chunk_index: number;
+  total_chunks: number;
+  text: string;
+  segments: TranscriptionSegment[];
+  time_offset: number;
+  error?: string;
+}
+
 export default function Home() {
   const [rssUrl, setRssUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<PodcastData | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [transcription, setTranscription] = useState({
+    chunks: [] as TranscriptionChunk[],
+    error: null as string | null,
+    isTranscribing: false,
+    completed: false,
+    stream: null as EventSource | null,
+  });
+
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const parseRSS = async () => {
     if (!rssUrl) return;
@@ -41,6 +66,18 @@ export default function Home() {
     setError(null);
     setData(null);
 
+    // Reset transcription state
+    setTranscription((prev) => {
+      prev.stream?.close();
+      return {
+        chunks: [],
+        error: null,
+        isTranscribing: false,
+        completed: false,
+        stream: null,
+      };
+    });
+
     try {
       const response = await fetch(
         `http://localhost:8000/api/v1/podcasts/parse-rss?url=${encodeURIComponent(
@@ -48,9 +85,8 @@ export default function Home() {
         )}`
       );
 
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
 
       const result = await response.json();
       setData(result);
@@ -61,10 +97,111 @@ export default function Home() {
     }
   };
 
+  const startTranscription = async (filename: string) => {
+    if (transcription.isTranscribing || transcription.completed || !filename)
+      return;
+
+    setTranscription((prev) => ({
+      ...prev,
+      isTranscribing: true,
+      error: null,
+      chunks: [],
+      completed: false,
+    }));
+
+    console.log("Starting transcription for:", filename);
+
+    const eventSource = new EventSource(
+      `http://localhost:8000/api/v1/transcription/transcribe/${filename}`
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(
+          event.data.startsWith("data: ") ? event.data.slice(6) : event.data
+        );
+
+        if (data.status === "completed") {
+          setTranscription((prev) => ({
+            ...prev,
+            isTranscribing: false,
+            completed: true,
+          }));
+          eventSource.close();
+          return;
+        }
+
+        if (data.error) {
+          setTranscription((prev) => ({
+            ...prev,
+            error: data.error,
+            isTranscribing: false,
+          }));
+          eventSource.close();
+          return;
+        }
+
+        if (data.chunk_index && data.total_chunks) {
+          setTranscription((prev) => ({
+            ...prev,
+            chunks: [...prev.chunks, data as TranscriptionChunk],
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to parse transcription data:", err);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      if (eventSource.readyState === EventSource.CLOSED) {
+        setTranscription((prev) => ({
+          ...prev,
+          isTranscribing: false,
+          completed: true,
+        }));
+      } else {
+        setTranscription((prev) => ({
+          ...prev,
+          error: "Connection error during transcription",
+          isTranscribing: false,
+        }));
+      }
+      eventSource.close();
+    };
+
+    setTranscription((prev) => ({ ...prev, stream: eventSource }));
+  };
+
+  const stopTranscription = () => {
+    transcription.stream?.close();
+    setTranscription((prev) => ({
+      ...prev,
+      stream: null,
+      isTranscribing: false,
+    }));
+    console.log("Transcription stopped");
+  };
+
+  const handleAudioPlay = () => {
+    if (
+      data?.audio_download.filename &&
+      !transcription.isTranscribing &&
+      !transcription.completed &&
+      !transcription.chunks.length
+    ) {
+      startTranscription(data.audio_download.filename);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     parseRSS();
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => transcription.stream?.close();
+  }, [transcription.stream]);
 
   return (
     <div className='min-h-screen p-8 bg-gray-50'>
@@ -147,15 +284,56 @@ export default function Home() {
                 data.audio_download.filename && (
                   <div className='mt-6'>
                     <h3 className='font-medium mb-3'>Listen to Episode</h3>
-                    <audio controls className='w-full' preload='metadata'>
+                    <audio
+                      ref={audioRef}
+                      controls
+                      className='w-full'
+                      preload='metadata'
+                      onPlay={handleAudioPlay}
+                    >
                       <source
                         src={`http://localhost:8000/media/${data.audio_download.filename}`}
                         type={data.audio_download.content_type}
                       />
                       Your browser does not support the audio element.
                     </audio>
+
+                    {transcription.isTranscribing && (
+                      <div className='mt-2 text-sm text-blue-600'>
+                        Transcribing... ({transcription.chunks.length} chunks
+                        processed)
+                      </div>
+                    )}
+
+                    {transcription.error && (
+                      <div className='mt-2 text-sm text-red-600'>
+                        Transcription error: {transcription.error}
+                      </div>
+                    )}
                   </div>
                 )}
+
+              {/* Transcription Display */}
+              {transcription.chunks.length > 0 && (
+                <div className='mt-6'>
+                  <h3 className='font-medium mb-3'>Live Transcription</h3>
+                  <div className='bg-gray-100 p-4 rounded-md max-h-96 overflow-y-auto'>
+                    {transcription.chunks.map((chunk, index) => (
+                      <div key={index} className='mb-4'>
+                        {chunk.segments.map((segment, segIndex) => (
+                          <div
+                            key={segIndex}
+                            className='text-xs text-gray-600 mt-1 ml-4'
+                          >
+                            [{segment.start.toFixed(2)}s -{" "}
+                            {segment.end.toFixed(2)}s] {segment.text}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
