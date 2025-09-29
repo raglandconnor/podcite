@@ -1,7 +1,12 @@
 """Core configuration for the application."""
+import os
 from pathlib import Path
 
 import httpx
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Media directory configuration
 MEDIA_DIR = Path("media")
@@ -17,5 +22,6 @@ http_client = httpx.AsyncClient(
 # Create settings object
 class Settings:
     MEDIA_DIR: Path = MEDIA_DIR
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
 
 settings = Settings()
