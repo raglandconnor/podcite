@@ -7,11 +7,21 @@ import aiofiles
 import feedparser
 import httpx
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from exceptions import RSSParseError
 from models import AudioDownloadResponse, Episode, HealthResponse, PodcastInfo, RSSParseResponse
 
 app = FastAPI(title="Podcast Source Listener API", version="0.1.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 MEDIA_DIR = Path("media")
 MEDIA_DIR.mkdir(exist_ok=True)
