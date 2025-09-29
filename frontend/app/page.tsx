@@ -43,9 +43,10 @@ export default function Home() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/parse-rss?url=${encodeURIComponent(rssUrl)}`
+        `http://localhost:8000/api/v1/podcasts/parse-rss?url=${encodeURIComponent(
+          rssUrl
+        )}`
       );
-      console.log(response);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
