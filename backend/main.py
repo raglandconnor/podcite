@@ -8,6 +8,7 @@ import feedparser
 import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from exceptions import RSSParseError
 from models import AudioDownloadResponse, Episode, HealthResponse, PodcastInfo, RSSParseResponse
@@ -25,6 +26,9 @@ app.add_middleware(
 
 MEDIA_DIR = Path("media")
 MEDIA_DIR.mkdir(exist_ok=True)
+
+# Mount static files for media serving
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 
 
 def create_safe_filename(url: str) -> str:
