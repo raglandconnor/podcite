@@ -98,6 +98,9 @@ cursor/
 *.cursor
 .cursorignore
 
+# LangGraph
+.langgraph_api/
+
 # Claude AI
 claude/
 .claude/

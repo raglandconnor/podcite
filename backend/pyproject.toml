@@ -9,10 +9,49 @@ dependencies = [
     "fastapi>=0.116.1",
     "feedparser>=6.0.12",
     "httpx>=0.28.1",
+    "langchain>=0.3.27",
+    "langchain-xai>=0.2.5",
+    "langgraph>=0.6.8",
+    "langgraph-cli[inmem]>=0.4.2",
     "openai>=1.54.0",
     "pydantic>=2.11.9",
     "pydub>=0.25.1",
     "python-dotenv>=1.0.0",
+    "requests>=2.32.5",
     "sse-starlette>=2.1.3",
     "uvicorn>=0.35.0",
 ]
+
+[project.optional-dependencies]
+dev = ["mypy>=1.11.1", "ruff>=0.6.1"]
+
+[dependency-groups]
+dev = [
+    "anyio>=4.7.0",
+    "langgraph-cli[inmem]>=0.2.8",
+    "mypy>=1.13.0",
+    "pytest>=8.3.5",
+    "ruff>=0.8.2",
+]
+
+[tool.ruff]
+lint.select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "D",    # pydocstyle
+    "D401", # First line should be in imperative mood
+    "T201",
+    "UP",
+]
+lint.ignore = [
+    "UP006",
+    "UP007",
+    # We actually do want to import from typing_extensions
+    "UP035",
+    # Relax the convention by _not_ requiring documentation for every function parameter.
+    "D417",
+    "E501",
+]
+lint.per-file-ignores."tests/*" = ["D", "UP"]
+lint.pydocstyle.convention = "google"
