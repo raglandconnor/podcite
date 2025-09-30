@@ -6,7 +6,8 @@ Returns a predefined response. Replace logic and configuration as needed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict
+from typing_extensions import TypedDict
 
 from langgraph.graph import StateGraph
 from langgraph.runtime import Runtime
@@ -63,14 +64,14 @@ async def _perform_searches(state: dict) -> dict:
         "search_results": search_results
     }
 
-class Context(TypedDict):
-    """Context parameters for the agent.
+# class Context(TypedDict):
+#     """Context parameters for the agent.
 
-    Set these when creating assistants OR when invoking the graph.
-    See: https://langchain-ai.github.io/langgraph/cloud/how-tos/configuration_cloud/
-    """
+#     Set these when creating assistants OR when invoking the graph.
+#     See: https://langchain-ai.github.io/langgraph/cloud/how-tos/configuration_cloud/
+#     """
 
-    my_configurable_param: str
+#     my_configurable_param: str
 
 
 @dataclass
@@ -85,7 +86,7 @@ class State:
     search_results: list[dict] | None = None
 
 # nodes
-async def web_search(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
+async def web_search(state: State) -> Dict[str, Any]:
     """Perform a web search using Brave Search API."""
     result = await _perform_searches({"statements_to_research": state.statements_to_research})
     return result
@@ -93,7 +94,7 @@ async def web_search(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
 
 # Define the graph
 graph = (
-    StateGraph(State, context_schema=Context)
+    StateGraph(State)
     .add_node(web_search)
     .add_edge("__start__", "web_search")
     .add_edge("web_search", "__end__")
