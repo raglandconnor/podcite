@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import RSSInputForm from "../components/RSSInputForm";
 import PodcastInfo from "../components/PodcastInfo";
 import EpisodeInfo from "../components/EpisodeInfo";
+import NotableContextDisplay from "../components/NotableContextDisplay";
+import { extractNotableContext } from "../lib/api";
 
 interface PodcastData {
   podcast: {
@@ -59,6 +61,13 @@ export default function Home() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
+
+  const [notableContext, setNotableContext] = useState({
+    data: null as any,
+    isLoading: false,
+    error: null as string | null,
+    lastExtractedTime: -1,
+  });
 
   const parseRSS = async () => {
     if (!rssUrl) return;
@@ -209,6 +218,59 @@ export default function Home() {
     };
   }, [data?.audio_download.filename]);
 
+  // Extract notable context automatically based on current playback position
+  useEffect(() => {
+    // Don't extract if no transcription chunks yet
+    if (transcription.chunks.length === 0) return;
+    // Don't extract if audio isn't playing
+    if (!audioRef.current || audioRef.current.paused) return;
+
+    // Find the chunk that contains the current time
+    const currentChunk = transcription.chunks.find((chunk) => {
+      const segments = chunk.segments;
+      if (segments.length === 0) return false;
+      const firstSegmentTime = segments[0].start;
+      const lastSegmentTime = segments[segments.length - 1].end;
+      return currentTime >= firstSegmentTime && currentTime <= lastSegmentTime;
+    });
+
+    if (!currentChunk) return;
+
+    // Check if we've already extracted for this chunk
+    const chunkStartTime = currentChunk.segments[0].start;
+    if (Math.abs(notableContext.lastExtractedTime - chunkStartTime) < 1) {
+      return; // Already extracted for this chunk
+    }
+
+    // Extract notable context
+    const extractContext = async () => {
+      setNotableContext((prev) => ({
+        ...prev,
+        isLoading: true,
+        error: null,
+        lastExtractedTime: chunkStartTime,
+      }));
+
+      try {
+        const result = await extractNotableContext(currentChunk.text);
+        setNotableContext((prev) => ({
+          ...prev,
+          data: result,
+          isLoading: false,
+        }));
+      } catch (err) {
+        setNotableContext((prev) => ({
+          ...prev,
+          error:
+            err instanceof Error ? err.message : "Failed to extract context",
+          isLoading: false,
+        }));
+      }
+    };
+
+    extractContext();
+  }, [currentTime, transcription.chunks, notableContext.lastExtractedTime]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => transcription.stream?.close();
@@ -245,22 +307,36 @@ export default function Home() {
               totalEpisodes={data.total_episodes_in_feed}
             />
 
-            {/* Episode Info */}
-            <EpisodeInfo
-              ref={audioRef}
-              title={data.episode.title}
-              description={data.episode.description}
-              publishedDate={data.episode.published_date}
-              duration={data.episode.duration}
-              audioDownload={{
-                status: data.audio_download.status,
-                filename: data.audio_download.filename,
-                contentType: data.audio_download.content_type,
-              }}
-              transcription={transcription}
-              onAudioPlay={handleAudioPlay}
-              currentTime={currentTime}
-            />
+            {/* Main Content Grid */}
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              {/* Episode Info & Player */}
+              <div>
+                <EpisodeInfo
+                  ref={audioRef}
+                  title={data.episode.title}
+                  description={data.episode.description}
+                  publishedDate={data.episode.published_date}
+                  duration={data.episode.duration}
+                  audioDownload={{
+                    status: data.audio_download.status,
+                    filename: data.audio_download.filename,
+                    contentType: data.audio_download.content_type,
+                  }}
+                  transcription={transcription}
+                  onAudioPlay={handleAudioPlay}
+                  currentTime={currentTime}
+                />
+              </div>
+
+              {/* Notable Context Panel */}
+              <div className='bg-white p-6 rounded-lg shadow'>
+                <NotableContextDisplay
+                  context={notableContext.data}
+                  isLoading={notableContext.isLoading}
+                  error={notableContext.error}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
