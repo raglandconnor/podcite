@@ -119,6 +119,7 @@ export default function Home() {
         const data = JSON.parse(
           event.data.startsWith("data: ") ? event.data.slice(6) : event.data
         );
+        console.log("Transcription API result:", data);
 
         if (data.status === "completed") {
           setTranscription((prev) => ({
@@ -148,6 +149,7 @@ export default function Home() {
         }
       } catch (err) {
         console.error("Failed to parse transcription data:", err);
+        console.log("Raw event data that failed to parse:", event.data);
       }
     };
 

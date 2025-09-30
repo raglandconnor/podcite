@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { researchStatements } from "@/lib/api";
 
 interface TranscriptionSegment {
   start: number;
@@ -32,6 +33,9 @@ export default function TranscriptionDisplay({
   const [isNearBottom, setIsNearBottom] = useState(true);
   const activeSegmentRef = useRef<HTMLDivElement>(null);
   const prevActiveKeyRef = useRef<string | null>(null);
+  const [selectedText, setSelectedText] = useState<string>("");
+  const [researchResults, setResearchResults] = useState<any>(null);
+  const [isResearching, setIsResearching] = useState(false);
 
   // Filter and flatten segments based on current time
   const visibleSegments: Array<{
@@ -127,6 +131,28 @@ export default function TranscriptionDisplay({
     prevActiveKeyRef.current = activeKey;
   }, [activeKey, isNearBottom]);
 
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const text = selection?.toString().trim() || "";
+    setSelectedText(text);
+  };
+
+  const handleResearch = async () => {
+    if (!selectedText) return;
+
+    setIsResearching(true);
+    setResearchResults(null);
+    try {
+      const results = await researchStatements([selectedText]);
+      setResearchResults(results);
+    } catch (error) {
+      console.error("Research failed:", error);
+      setResearchResults({ error: String(error) });
+    } finally {
+      setIsResearching(false);
+    }
+  };
+
   if (chunks.length === 0 && !isTranscribing && !error) {
     return null;
   }
@@ -153,9 +179,43 @@ export default function TranscriptionDisplay({
         </div>
       )}
 
+      {selectedText && (
+        <div className='mb-2 flex items-center gap-2'>
+          <button
+            onClick={handleResearch}
+            disabled={isResearching}
+            className='bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
+          >
+            {isResearching ? "Researching..." : "Research Selected Text"}
+          </button>
+          <span className='text-xs text-gray-600'>
+            "{selectedText.substring(0, 50)}
+            {selectedText.length > 50 ? "..." : ""}"
+          </span>
+        </div>
+      )}
+
+      {researchResults && (
+        <div className='mb-4 bg-white border border-gray-300 rounded-md p-4 max-h-96 overflow-auto'>
+          <div className='flex justify-between items-center mb-2'>
+            <h3 className='font-semibold text-sm'>Research Results</h3>
+            <button
+              onClick={() => setResearchResults(null)}
+              className='text-gray-500 hover:text-gray-700 text-xs'
+            >
+              Close
+            </button>
+          </div>
+          <pre className='text-xs whitespace-pre-wrap break-words'>
+            {JSON.stringify(researchResults, null, 2)}
+          </pre>
+        </div>
+      )}
+
       {visibleSegments.length > 0 && (
         <div
           ref={scrollContainerRef}
+          onMouseUp={handleTextSelection}
           className='bg-gray-100 p-4 rounded-md max-h-64 overflow-y-auto relative'
         >
           {visibleSegments.map((item, index) => {
