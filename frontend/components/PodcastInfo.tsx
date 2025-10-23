@@ -14,8 +14,10 @@ export default function PodcastInfo({
   totalEpisodes,
 }: PodcastInfoProps) {
   return (
-    <div className='bg-white p-6 rounded-lg shadow'>
-      <h2 className='text-xl font-semibold mb-4'>Podcast</h2>
+    <div className='bg-card p-6 rounded-lg shadow border'>
+      <h2 className='text-xl font-semibold mb-4 text-card-foreground'>
+        Podcast
+      </h2>
       <div className='flex gap-4'>
         {imageUrl && (
           <img
@@ -25,9 +27,11 @@ export default function PodcastInfo({
           />
         )}
         <div>
-          <h3 className='font-semibold text-lg'>{title}</h3>
-          <p className='text-gray-600 mt-2'>{description}</p>
-          <p className='text-sm text-gray-500 mt-2'>
+          <h3 className='font-semibold text-lg text-card-foreground'>
+            {title}
+          </h3>
+          <p className='text-muted-foreground mt-2'>{description}</p>
+          <p className='text-sm text-muted-foreground mt-2'>
             Total episodes: {totalEpisodes}
           </p>
         </div>

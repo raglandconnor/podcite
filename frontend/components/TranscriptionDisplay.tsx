@@ -160,20 +160,20 @@ export default function TranscriptionDisplay({
   return (
     <div className='mt-6'>
       {isTranscribing && (
-        <div className='text-sm text-blue-600 mb-2'>
+        <div className='text-sm text-primary mb-2'>
           Transcribing... ({chunks.length} chunks processed)
         </div>
       )}
 
       {error && (
-        <div className='text-sm text-red-600 mb-2'>
+        <div className='text-sm text-destructive mb-2'>
           Transcription error: {error}
         </div>
       )}
 
       {visibleSegments.length > 0 && (
         <div className='flex items-center justify-between mb-2'>
-          <span className='text-sm text-gray-600'>
+          <span className='text-sm text-muted-foreground'>
             Transcript ({visibleSegments.length} segments)
           </span>
         </div>
@@ -184,11 +184,11 @@ export default function TranscriptionDisplay({
           <button
             onClick={handleResearch}
             disabled={isResearching}
-            className='bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
+            className='bg-primary text-primary-foreground text-sm px-4 py-2 rounded hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground'
           >
             {isResearching ? "Researching..." : "Research Selected Text"}
           </button>
-          <span className='text-xs text-gray-600'>
+          <span className='text-xs text-muted-foreground'>
             "{selectedText.substring(0, 50)}
             {selectedText.length > 50 ? "..." : ""}"
           </span>
@@ -196,17 +196,19 @@ export default function TranscriptionDisplay({
       )}
 
       {researchResults && (
-        <div className='mb-4 bg-white border border-gray-300 rounded-md p-4 max-h-96 overflow-auto'>
+        <div className='mb-4 bg-card border border-border rounded-md p-4 max-h-96 overflow-auto'>
           <div className='flex justify-between items-center mb-2'>
-            <h3 className='font-semibold text-sm'>Research Results</h3>
+            <h3 className='font-semibold text-sm text-card-foreground'>
+              Research Results
+            </h3>
             <button
               onClick={() => setResearchResults(null)}
-              className='text-gray-500 hover:text-gray-700 text-xs'
+              className='text-muted-foreground hover:text-foreground text-xs'
             >
               Close
             </button>
           </div>
-          <pre className='text-xs whitespace-pre-wrap break-words'>
+          <pre className='text-xs whitespace-pre-wrap break-words text-card-foreground'>
             {JSON.stringify(researchResults, null, 2)}
           </pre>
         </div>
@@ -216,7 +218,7 @@ export default function TranscriptionDisplay({
         <div
           ref={scrollContainerRef}
           onMouseUp={handleTextSelection}
-          className='bg-gray-100 p-4 rounded-md max-h-64 overflow-y-auto relative'
+          className='bg-muted p-4 rounded-md max-h-64 overflow-y-auto relative'
         >
           {visibleSegments.map((item, index) => {
             const key = `${item.chunkIndex}-${item.segmentIndex}`;
@@ -238,11 +240,11 @@ export default function TranscriptionDisplay({
                 }
                 className={`text-sm mb-2 p-2 rounded ${
                   isActive
-                    ? "bg-blue-100 border-l-4 border-blue-500"
-                    : "text-gray-700"
+                    ? "bg-accent border-l-4 border-ring"
+                    : "text-muted-foreground"
                 }`}
               >
-                <div className='text-gray-500'>
+                <div className='text-muted-foreground'>
                   [{item.absoluteStartTime.toFixed(0)}s -{" "}
                   {item.absoluteEndTime.toFixed(0)}s]
                   <span>{item.segment.text}</span>
@@ -253,7 +255,7 @@ export default function TranscriptionDisplay({
 
           {/* Jump to live when not following */}
           {!isNearBottom && (
-            <div className='sticky bottom-0 left-0 flex justify-center pointer-events-none pt-4 bg-gradient-to-t from-gray-100 via-gray-100/80 to-transparent'>
+            <div className='sticky bottom-0 left-0 flex justify-center pointer-events-none pt-4 bg-gradient-to-t from-muted via-muted/80 to-transparent'>
               <button
                 onClick={() => {
                   const container = scrollContainerRef.current;
@@ -273,7 +275,7 @@ export default function TranscriptionDisplay({
                   container.scrollTo({ top: desiredTop, behavior: "smooth" });
                   setIsNearBottom(true);
                 }}
-                className='pointer-events-auto bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow hover:bg-blue-700'
+                className='pointer-events-auto bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full shadow hover:bg-primary/90'
                 title='Jump to the current segment and resume following'
               >
                 Jump to live
@@ -284,7 +286,7 @@ export default function TranscriptionDisplay({
       )}
 
       {chunks.length > 0 && visibleSegments.length === 0 && !isTranscribing && (
-        <div className='bg-gray-100 p-4 rounded-md text-gray-500 text-center'>
+        <div className='bg-muted p-4 rounded-md text-muted-foreground text-center'>
           Transcript will appear as audio plays...
         </div>
       )}

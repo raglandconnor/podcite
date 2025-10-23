@@ -41,23 +41,23 @@ export default function NotableContextDisplay({
       <h3 className='font-medium mb-3 text-lg'>Notable Context</h3>
 
       {isLoading && (
-        <div className='bg-blue-50 border border-blue-200 p-4 rounded-md'>
-          <div className='text-blue-600 text-sm'>
+        <div className='bg-muted border border-border p-4 rounded-md'>
+          <div className='text-primary text-sm'>
             Extracting notable context...
           </div>
         </div>
       )}
 
       {error && (
-        <div className='bg-red-50 border border-red-200 p-4 rounded-md'>
-          <div className='text-red-600 text-sm'>Error: {error}</div>
+        <div className='bg-destructive/10 border border-destructive p-4 rounded-md'>
+          <div className='text-destructive text-sm'>Error: {error}</div>
         </div>
       )}
 
       {selectedItem && (
-        <div className='mb-4 p-3 bg-gray-100 rounded-md border border-gray-300'>
+        <div className='mb-4 p-3 bg-muted rounded-md border border-border'>
           <div className='flex items-center justify-between mb-2'>
-            <div className='text-xs font-semibold text-gray-700'>
+            <div className='text-xs font-semibold text-foreground'>
               Researching:
             </div>
             <button
@@ -65,42 +65,46 @@ export default function NotableContextDisplay({
                 setSelectedItem(null);
                 setResearchResults(null);
               }}
-              className='text-gray-500 hover:text-gray-700 text-xs'
+              className='text-muted-foreground hover:text-foreground text-xs'
             >
               Clear
             </button>
           </div>
-          <div className='text-xs text-gray-600 italic'>"{selectedItem}"</div>
+          <div className='text-xs text-muted-foreground italic'>
+            "{selectedItem}"
+          </div>
         </div>
       )}
 
       {isResearching && (
-        <div className='mb-4 bg-yellow-50 border border-yellow-200 p-4 rounded-md'>
-          <div className='text-yellow-700 text-sm'>
+        <div className='mb-4 bg-accent border border-border p-4 rounded-md'>
+          <div className='text-accent-foreground text-sm'>
             Researching statement...
           </div>
         </div>
       )}
 
       {researchResults && (
-        <div className='mb-4 bg-white border border-gray-300 rounded-md p-4 max-h-96 overflow-auto'>
+        <div className='mb-4 bg-card border border-border rounded-md p-4 max-h-96 overflow-auto'>
           <div className='flex justify-between items-center mb-2'>
-            <h4 className='font-semibold text-sm'>Research Results</h4>
+            <h4 className='font-semibold text-sm text-card-foreground'>
+              Research Results
+            </h4>
             <button
               onClick={() => setResearchResults(null)}
-              className='text-gray-500 hover:text-gray-700 text-xs'
+              className='text-muted-foreground hover:text-foreground text-xs'
             >
               Close
             </button>
           </div>
-          <pre className='text-xs whitespace-pre-wrap break-words'>
+          <pre className='text-xs whitespace-pre-wrap break-words text-card-foreground'>
             {JSON.stringify(researchResults, null, 2)}
           </pre>
         </div>
       )}
 
       {context && !isLoading && (
-        <div className='bg-white border border-gray-300 rounded-md p-4 space-y-3 max-h-96 overflow-y-auto'>
+        <div className='bg-card border border-border rounded-md p-4 space-y-3 max-h-96 overflow-y-auto'>
           {context.notable_context && Array.isArray(context.notable_context) ? (
             <div className='space-y-2'>
               {context.notable_context.map((item: string, index: number) => (
@@ -108,15 +112,15 @@ export default function NotableContextDisplay({
                   key={index}
                   onClick={() => handleResearch(item)}
                   disabled={isResearching}
-                  className='w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors text-sm text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='w-full text-left px-4 py-3 bg-secondary hover:bg-secondary/80 border border-border rounded-md transition-colors text-sm text-secondary-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   {item}
                 </button>
               ))}
             </div>
           ) : (
-            <div className='text-sm text-gray-600'>
-              <pre className='whitespace-pre-wrap break-words text-xs'>
+            <div className='text-sm text-muted-foreground'>
+              <pre className='whitespace-pre-wrap break-words text-xs text-card-foreground'>
                 {JSON.stringify(context, null, 2)}
               </pre>
             </div>

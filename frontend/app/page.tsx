@@ -277,9 +277,9 @@ export default function Home() {
   }, [transcription.stream]);
 
   return (
-    <div className='min-h-screen p-8 bg-gray-50'>
-      <div className='max-w-4xl mx-auto'>
-        <h1 className='text-3xl font-bold text-gray-900 mb-8'>
+    <div className='min-h-screen p-8 bg-background'>
+      <div className='max-w-7xl mx-auto'>
+        <h1 className='text-3xl font-bold text-foreground mb-8'>
           Podcast RSS Parser
         </h1>
 
@@ -291,7 +291,7 @@ export default function Home() {
         />
 
         {error && (
-          <div className='mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md'>
+          <div className='mb-6 p-4 bg-destructive/10 border border-destructive text-destructive rounded-md'>
             Error: {error}
           </div>
         )}
@@ -329,7 +329,7 @@ export default function Home() {
               </div>
 
               {/* Notable Context Panel */}
-              <div className='bg-white p-6 rounded-lg shadow'>
+              <div className='bg-card p-6 rounded-lg shadow border'>
                 <NotableContextDisplay
                   context={notableContext.data}
                   isLoading={notableContext.isLoading}

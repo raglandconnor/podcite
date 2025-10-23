@@ -48,11 +48,13 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
     ref
   ) => {
     return (
-      <div className='bg-white p-6 rounded-lg shadow'>
-        <h2 className='text-xl font-semibold mb-4'>Latest Episode</h2>
-        <h3 className='font-semibold text-lg'>{title}</h3>
-        <p className='text-gray-600 mt-2'>{description}</p>
-        <div className='mt-4 grid grid-cols-2 gap-4 text-sm'>
+      <div className='bg-card p-6 rounded-lg shadow border'>
+        <h2 className='text-xl font-semibold mb-4 text-card-foreground'>
+          Latest Episode
+        </h2>
+        <h3 className='font-semibold text-lg text-card-foreground'>{title}</h3>
+        <p className='text-muted-foreground mt-2'>{description}</p>
+        <div className='mt-4 grid grid-cols-2 gap-4 text-sm text-card-foreground'>
           <div>
             <span className='font-medium'>Published:</span> {publishedDate}
           </div>
