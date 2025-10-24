@@ -1,10 +1,10 @@
 {
   "$schema": "https://langgra.ph/schema.json",
-  "dependencies": ["."],
+  "dependencies": ["../.."],
   "graphs": {
     "research": "./src/research_graph/graph.py:graph",
     "notable_context": "./src/notable_context_graph/graph.py:graph"
   },
-  "env": ".env",
+  "env": "../.env",
   "image_distro": "wolfi"
 }
