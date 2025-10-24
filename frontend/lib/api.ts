@@ -34,3 +34,23 @@ export async function extractNotableContext(transcript: string) {
 
   return response.json();
 }
+
+export interface AudioChunkInfo {
+  total_chunks: number;
+  chunk_duration_seconds: number;
+  total_duration_seconds: number;
+}
+
+export async function getAudioChunkInfo(
+  filename: string
+): Promise<AudioChunkInfo> {
+  const response = await fetch(
+    `${API_BASE_URL}/transcription/info/${filename}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to get audio info: ${response.statusText}`);
+  }
+
+  return response.json();
+}

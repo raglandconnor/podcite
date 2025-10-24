@@ -5,7 +5,7 @@ import RSSInputForm from "../components/RSSInputForm";
 import PodcastInfo from "../components/PodcastInfo";
 import EpisodeInfo from "../components/EpisodeInfo";
 import NotableContextDisplay from "../components/NotableContextDisplay";
-import { extractNotableContext } from "../lib/api";
+import { extractNotableContext, getAudioChunkInfo } from "../lib/api";
 
 interface PodcastData {
   podcast: {
@@ -57,10 +57,15 @@ export default function Home() {
     isTranscribing: false,
     completed: false,
     stream: null as EventSource | null,
+    totalChunks: 0,
+    chunkDurationSeconds: 120,
+    lastTranscribedChunkIndex: -1,
+    transcribedChunkIndices: [] as number[],
   });
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const prevTimeRef = useRef(0);
 
   const [notableContext, setNotableContext] = useState({
     data: null as any,
@@ -85,6 +90,10 @@ export default function Home() {
         isTranscribing: false,
         completed: false,
         stream: null,
+        totalChunks: 0,
+        chunkDurationSeconds: 120,
+        lastTranscribedChunkIndex: -1,
+        transcribedChunkIndices: [],
       };
     });
 
@@ -107,20 +116,38 @@ export default function Home() {
     }
   };
 
-  const startTranscription = async (filename: string) => {
-    if (transcription.isTranscribing || transcription.completed || !filename)
+  const loadChunks = async (
+    filename: string,
+    startChunk: number,
+    endChunk: number
+  ) => {
+    if (transcription.isTranscribing) {
+      console.log("Already transcribing, skipping load request");
       return;
+    }
+
+    // Check if chunks are already transcribed
+    const alreadyTranscribed = [];
+    for (let i = startChunk; i <= endChunk; i++) {
+      if (transcription.transcribedChunkIndices.includes(i)) {
+        alreadyTranscribed.push(i);
+      }
+    }
+    if (alreadyTranscribed.length === endChunk - startChunk + 1) {
+      console.log(`Chunks ${startChunk}-${endChunk} already transcribed`);
+      return;
+    }
+
+    console.log(`Loading chunks ${startChunk} to ${endChunk}`);
 
     setTranscription((prev) => ({
       ...prev,
       isTranscribing: true,
       error: null,
-      chunks: [],
-      completed: false,
     }));
 
     const eventSource = new EventSource(
-      `http://localhost:8000/api/v1/transcription/transcribe/${filename}`
+      `http://localhost:8000/api/v1/transcription/chunks/${filename}?start_chunk=${startChunk}&end_chunk=${endChunk}`
     );
 
     eventSource.onmessage = (event) => {
@@ -128,13 +155,12 @@ export default function Home() {
         const data = JSON.parse(
           event.data.startsWith("data: ") ? event.data.slice(6) : event.data
         );
-        console.log("Transcription API result:", data);
 
         if (data.status === "completed") {
           setTranscription((prev) => ({
             ...prev,
             isTranscribing: false,
-            completed: true,
+            stream: null,
           }));
           eventSource.close();
           return;
@@ -145,60 +171,81 @@ export default function Home() {
             ...prev,
             error: data.error,
             isTranscribing: false,
+            stream: null,
           }));
           eventSource.close();
           return;
         }
 
         if (data.chunk_index && data.total_chunks) {
-          setTranscription((prev) => ({
-            ...prev,
-            chunks: [...prev.chunks, data as TranscriptionChunk],
-          }));
+          const chunkIdx = data.chunk_index - 1; // Convert to 0-based
+          setTranscription((prev) => {
+            // Add chunk index if not already present
+            const newTranscribedIndices = prev.transcribedChunkIndices.includes(
+              chunkIdx
+            )
+              ? prev.transcribedChunkIndices
+              : [...prev.transcribedChunkIndices, chunkIdx];
+
+            return {
+              ...prev,
+              chunks: [...prev.chunks, data as TranscriptionChunk],
+              lastTranscribedChunkIndex: Math.max(
+                prev.lastTranscribedChunkIndex,
+                chunkIdx
+              ),
+              transcribedChunkIndices: newTranscribedIndices,
+            };
+          });
         }
       } catch (err) {
         console.error("Failed to parse transcription data:", err);
-        console.log("Raw event data that failed to parse:", event.data);
       }
     };
 
     eventSource.onerror = (error) => {
-      if (eventSource.readyState === EventSource.CLOSED) {
-        setTranscription((prev) => ({
-          ...prev,
-          isTranscribing: false,
-          completed: true,
-        }));
-      } else {
-        setTranscription((prev) => ({
-          ...prev,
-          error: "Connection error during transcription",
-          isTranscribing: false,
-        }));
-      }
+      setTranscription((prev) => ({
+        ...prev,
+        error: "Connection error during transcription",
+        isTranscribing: false,
+        stream: null,
+      }));
       eventSource.close();
     };
 
     setTranscription((prev) => ({ ...prev, stream: eventSource }));
   };
 
-  const stopTranscription = () => {
-    transcription.stream?.close();
-    setTranscription((prev) => ({
-      ...prev,
-      stream: null,
-      isTranscribing: false,
-    }));
+  const initializeTranscription = async (filename: string) => {
+    try {
+      console.log("Fetching audio chunk info...");
+      const info = await getAudioChunkInfo(filename);
+      console.log("Audio info:", info);
+
+      setTranscription((prev) => ({
+        ...prev,
+        totalChunks: info.total_chunks,
+        chunkDurationSeconds: info.chunk_duration_seconds,
+      }));
+
+      // Load first 2 chunks
+      await loadChunks(filename, 0, 1);
+    } catch (err) {
+      console.error("Failed to initialize transcription:", err);
+      setTranscription((prev) => ({
+        ...prev,
+        error: err instanceof Error ? err.message : "Failed to initialize",
+      }));
+    }
   };
 
   const handleAudioPlay = () => {
     if (
       data?.audio_download.filename &&
-      !transcription.isTranscribing &&
-      !transcription.completed &&
-      !transcription.chunks.length
+      transcription.totalChunks === 0 &&
+      !transcription.isTranscribing
     ) {
-      startTranscription(data.audio_download.filename);
+      initializeTranscription(data.audio_download.filename);
     }
   };
 
@@ -270,6 +317,93 @@ export default function Home() {
 
     extractContext();
   }, [currentTime, transcription.chunks, notableContext.lastExtractedTime]);
+
+  // Progressive chunk loading based on playback position
+  useEffect(() => {
+    if (
+      !data?.audio_download.filename ||
+      transcription.totalChunks === 0 ||
+      transcription.isTranscribing
+    ) {
+      return;
+    }
+
+    const lastChunkIndex = transcription.lastTranscribedChunkIndex;
+    if (lastChunkIndex === -1) return;
+
+    // Check if we've reached 50% through the last transcribed chunk
+    const lastChunkStartTime =
+      lastChunkIndex * transcription.chunkDurationSeconds;
+    const lastChunkEndTime =
+      (lastChunkIndex + 1) * transcription.chunkDurationSeconds;
+    const midpoint = (lastChunkStartTime + lastChunkEndTime) / 2;
+
+    // Load next chunk when past midpoint
+    if (
+      currentTime >= midpoint &&
+      lastChunkIndex + 1 < transcription.totalChunks
+    ) {
+      console.log(
+        `Reached midpoint of chunk ${lastChunkIndex}, loading next chunk`
+      );
+      loadChunks(
+        data.audio_download.filename,
+        lastChunkIndex + 1,
+        lastChunkIndex + 1
+      );
+    }
+  }, [
+    currentTime,
+    transcription.lastTranscribedChunkIndex,
+    transcription.totalChunks,
+    transcription.chunkDurationSeconds,
+    transcription.isTranscribing,
+    data?.audio_download.filename,
+  ]);
+
+  // Seek detection and gap filling
+  useEffect(() => {
+    if (
+      !data?.audio_download.filename ||
+      transcription.totalChunks === 0 ||
+      transcription.chunkDurationSeconds === 0
+    ) {
+      return;
+    }
+
+    const timeDiff = currentTime - prevTimeRef.current;
+
+    // Detect forward seek (jump > 2 seconds)
+    if (timeDiff > 2) {
+      console.log(
+        `Detected forward seek from ${prevTimeRef.current} to ${currentTime}`
+      );
+
+      const currentChunkIndex = Math.floor(
+        currentTime / transcription.chunkDurationSeconds
+      );
+
+      // Check if current position is in an untranscribed chunk
+      if (!transcription.transcribedChunkIndices.includes(currentChunkIndex)) {
+        console.log(`Seeking to untranscribed chunk ${currentChunkIndex}`);
+
+        // Load the current chunk and the next one
+        const endChunk = Math.min(
+          currentChunkIndex + 1,
+          transcription.totalChunks - 1
+        );
+        loadChunks(data.audio_download.filename, currentChunkIndex, endChunk);
+      }
+    }
+
+    prevTimeRef.current = currentTime;
+  }, [
+    currentTime,
+    transcription.totalChunks,
+    transcription.chunkDurationSeconds,
+    transcription.transcribedChunkIndices,
+    data?.audio_download.filename,
+  ]);
 
   // Cleanup on unmount
   useEffect(() => {
