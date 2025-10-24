@@ -34,6 +34,7 @@ interface EpisodeInfoProps {
   };
   onAudioPlay: () => void;
   currentTime: number;
+  onTextSelected?: (text: string) => void;
 }
 
 const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
@@ -47,6 +48,7 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
       transcription,
       onAudioPlay,
       currentTime,
+      onTextSelected,
     },
     ref
   ) => {
@@ -98,6 +100,7 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
             isTranscribing={transcription.isTranscribing}
             error={transcription.error}
             currentTime={currentTime}
+            onTextSelected={onTextSelected}
           />
         </CardContent>
       </Card>

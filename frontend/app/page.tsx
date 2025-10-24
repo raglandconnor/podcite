@@ -4,8 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import RSSInputForm from "../components/RSSInputForm";
 import PodcastInfo from "../components/PodcastInfo";
 import EpisodeInfo from "../components/EpisodeInfo";
-import NotableContextDisplay from "../components/NotableContextDisplay";
-import { extractNotableContext, getAudioChunkInfo } from "../lib/api";
+import ResearchPanel from "../components/ResearchPanel";
+import {
+  extractNotableContext,
+  getAudioChunkInfo,
+  researchStatements,
+  ResearchItem,
+} from "../lib/api";
 
 interface PodcastData {
   podcast: {
@@ -67,17 +72,10 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(0);
   const prevTimeRef = useRef(0);
 
-  const [notableContext, setNotableContext] = useState<{
-    data: { notable_context?: string[] } | null;
-    isLoading: boolean;
-    error: string | null;
-    lastExtractedTime: number;
-  }>({
-    data: null,
-    isLoading: false,
-    error: null,
-    lastExtractedTime: -1,
-  });
+  // Unified research items state
+  const [researchItems, setResearchItems] = useState<ResearchItem[]>([]);
+  const [lastExtractedTime, setLastExtractedTime] = useState(-1);
+  const isResearchingRef = useRef(false);
 
   const parseRSS = async () => {
     if (!rssUrl) return;
@@ -270,6 +268,69 @@ export default function Home() {
     };
   }, [data?.audio_download.filename]);
 
+  // Trigger research whenever there are pending items
+  useEffect(() => {
+    const researchNextPending = async () => {
+      if (isResearchingRef.current) return;
+
+      // Find the first pending item
+      const pendingItem = researchItems.find(
+        (item) => item.status === "pending"
+      );
+      if (!pendingItem) return;
+
+      isResearchingRef.current = true;
+
+      // Update status to researching
+      setResearchItems((prev) =>
+        prev.map((item) =>
+          item.id === pendingItem.id ? { ...item, status: "researching" } : item
+        )
+      );
+
+      try {
+        const result = await researchStatements([pendingItem.question]);
+        const verification = result.synthesized_results[0];
+
+        setResearchItems((prev) =>
+          prev.map((item) =>
+            item.id === pendingItem.id
+              ? { ...item, status: "completed", results: verification }
+              : item
+          )
+        );
+      } catch (err) {
+        setResearchItems((prev) =>
+          prev.map((item) =>
+            item.id === pendingItem.id
+              ? {
+                  ...item,
+                  status: "error",
+                  error: err instanceof Error ? err.message : "Research failed",
+                }
+              : item
+          )
+        );
+      } finally {
+        isResearchingRef.current = false;
+      }
+    };
+
+    researchNextPending();
+  }, [researchItems]);
+
+  // Handle manual text selection
+  const handleTextSelected = (text: string) => {
+    const newItem: ResearchItem = {
+      id: `manual-${Date.now()}`,
+      question: text,
+      type: "manual",
+      timestamp: currentTime,
+      status: "pending",
+    };
+    setResearchItems((prev) => [...prev, newItem]);
+  };
+
   // Extract notable context automatically based on current playback position
   useEffect(() => {
     // Don't extract if no transcription chunks yet
@@ -290,38 +351,38 @@ export default function Home() {
 
     // Check if we've already extracted for this chunk
     const chunkStartTime = currentChunk.segments[0].start;
-    if (Math.abs(notableContext.lastExtractedTime - chunkStartTime) < 1) {
+    if (Math.abs(lastExtractedTime - chunkStartTime) < 1) {
       return; // Already extracted for this chunk
     }
 
     // Extract notable context
     const extractContext = async () => {
-      setNotableContext((prev) => ({
-        ...prev,
-        isLoading: true,
-        error: null,
-        lastExtractedTime: chunkStartTime,
-      }));
+      setLastExtractedTime(chunkStartTime);
 
       try {
         const result = await extractNotableContext(currentChunk.text);
-        setNotableContext((prev) => ({
-          ...prev,
-          data: result,
-          isLoading: false,
-        }));
+
+        // Add all questions as pending research items
+        if (result.notable_context && Array.isArray(result.notable_context)) {
+          const newItems: ResearchItem[] = result.notable_context.map(
+            (question: string, idx: number) => ({
+              id: `notable-${chunkStartTime}-${idx}`,
+              question,
+              type: "notable" as const,
+              timestamp: chunkStartTime,
+              status: "pending" as const,
+            })
+          );
+
+          setResearchItems((prev) => [...prev, ...newItems]);
+        }
       } catch (err) {
-        setNotableContext((prev) => ({
-          ...prev,
-          error:
-            err instanceof Error ? err.message : "Failed to extract context",
-          isLoading: false,
-        }));
+        console.error("Failed to extract notable context:", err);
       }
     };
 
     extractContext();
-  }, [currentTime, transcription.chunks, notableContext.lastExtractedTime]);
+  }, [currentTime, transcription.chunks, lastExtractedTime]);
 
   // Progressive chunk loading based on playback position
   useEffect(() => {
@@ -448,28 +509,29 @@ export default function Home() {
               totalEpisodes={data.total_episodes_in_feed}
             />
 
-            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              <EpisodeInfo
-                ref={audioRef}
-                title={data.episode.title}
-                description={data.episode.description}
-                publishedDate={data.episode.published_date}
-                duration={data.episode.duration}
-                audioDownload={{
-                  status: data.audio_download.status,
-                  filename: data.audio_download.filename,
-                  contentType: data.audio_download.content_type,
-                }}
-                transcription={transcription}
-                onAudioPlay={handleAudioPlay}
-                currentTime={currentTime}
-              />
+            <div className='grid grid-cols-1 lg:grid-cols-[1fr_700px] gap-6 w-full overflow-hidden'>
+              <div className='min-w-0 overflow-hidden'>
+                <EpisodeInfo
+                  ref={audioRef}
+                  title={data.episode.title}
+                  description={data.episode.description}
+                  publishedDate={data.episode.published_date}
+                  duration={data.episode.duration}
+                  audioDownload={{
+                    status: data.audio_download.status,
+                    filename: data.audio_download.filename,
+                    contentType: data.audio_download.content_type,
+                  }}
+                  transcription={transcription}
+                  onAudioPlay={handleAudioPlay}
+                  currentTime={currentTime}
+                  onTextSelected={handleTextSelected}
+                />
+              </div>
 
-              <NotableContextDisplay
-                context={notableContext.data}
-                isLoading={notableContext.isLoading}
-                error={notableContext.error}
-              />
+              <div className='min-w-0 overflow-hidden w-full max-w-[700px]'>
+                <ResearchPanel items={researchItems} />
+              </div>
             </div>
           </div>
         )}

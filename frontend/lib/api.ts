@@ -1,6 +1,34 @@
 const API_BASE_URL = "http://localhost:8000/api/v1";
 
-export async function researchStatements(statements: string[]) {
+export interface SourceLink {
+  url: string;
+  title: string;
+  type: "arxiv" | "web" | "legislation";
+  relevance: string;
+}
+
+export interface StatementVerification {
+  statement: string;
+  verdict: "verified" | "refuted" | "inconclusive" | "partial";
+  confidence: number;
+  summary: string;
+  reasoning: string;
+  sources: SourceLink[];
+}
+
+export interface ResearchItem {
+  id: string;
+  question: string;
+  type: "notable" | "manual";
+  timestamp: number;
+  status: "pending" | "researching" | "completed" | "error";
+  results?: StatementVerification;
+  error?: string;
+}
+
+export async function researchStatements(
+  statements: string[]
+): Promise<{ synthesized_results: StatementVerification[] }> {
   const response = await fetch(`${API_BASE_URL}/workflows/research/`, {
     method: "POST",
     headers: {

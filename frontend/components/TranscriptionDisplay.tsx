@@ -1,9 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import { researchStatements } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 interface TranscriptionSegment {
@@ -25,6 +22,7 @@ interface TranscriptionDisplayProps {
   isTranscribing: boolean;
   error: string | null;
   currentTime: number;
+  onTextSelected?: (text: string) => void;
 }
 
 export default function TranscriptionDisplay({
@@ -32,6 +30,7 @@ export default function TranscriptionDisplay({
   isTranscribing,
   error,
   currentTime,
+  onTextSelected,
 }: TranscriptionDisplayProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastSegmentRef = useRef<HTMLDivElement>(null);
@@ -39,11 +38,6 @@ export default function TranscriptionDisplay({
   const activeSegmentRef = useRef<HTMLDivElement>(null);
   const prevActiveKeyRef = useRef<string | null>(null);
   const [selectedText, setSelectedText] = useState<string>("");
-  const [researchResults, setResearchResults] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
-  const [isResearching, setIsResearching] = useState(false);
 
   // Filter and flatten segments based on current time
   const visibleSegments: Array<{
@@ -145,20 +139,19 @@ export default function TranscriptionDisplay({
     setSelectedText(text);
   };
 
-  const handleResearch = async () => {
-    if (!selectedText) return;
+  const handleResearch = () => {
+    if (!selectedText || !onTextSelected) return;
+    onTextSelected(selectedText);
+    setSelectedText(""); // Clear selection after submitting
+  };
 
-    setIsResearching(true);
-    setResearchResults(null);
-    try {
-      const results = await researchStatements([selectedText]);
-      setResearchResults(results);
-    } catch (error) {
-      console.error("Research failed:", error);
-      setResearchResults({ error: String(error) });
-    } finally {
-      setIsResearching(false);
-    }
+  // Utility function to format seconds to mm:ss
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   if (chunks.length === 0 && !isTranscribing && !error) {
@@ -171,11 +164,7 @@ export default function TranscriptionDisplay({
 
       <div className='flex items-center justify-between mb-3'>
         <h3 className='font-medium text-sm'>Transcript</h3>
-        {isTranscribing && (
-          <Badge variant='secondary'>
-            Transcribing... {chunks.length} chunks
-          </Badge>
-        )}
+        {isTranscribing && <Badge variant='secondary'>Transcribing...</Badge>}
         {visibleSegments.length > 0 && !isTranscribing && (
           <Badge variant='outline'>{visibleSegments.length} segments</Badge>
         )}
@@ -189,34 +178,14 @@ export default function TranscriptionDisplay({
 
       {selectedText && (
         <div className='mb-3 flex items-center gap-2'>
-          <Button size='sm' onClick={handleResearch} disabled={isResearching}>
-            {isResearching ? "Researching..." : "Research Selected"}
+          <Button size='sm' onClick={handleResearch}>
+            Research Selected
           </Button>
           <span className='text-xs text-muted-foreground truncate'>
             &quot;{selectedText.substring(0, 50)}
             {selectedText.length > 50 ? "..." : ""}&quot;
           </span>
         </div>
-      )}
-
-      {researchResults && (
-        <Card className='mb-3 p-4'>
-          <div className='flex justify-between items-center mb-2'>
-            <h4 className='font-semibold text-sm'>Research Results</h4>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => setResearchResults(null)}
-            >
-              Close
-            </Button>
-          </div>
-          <ScrollArea className='h-96'>
-            <pre className='text-xs whitespace-pre-wrap break-words'>
-              {JSON.stringify(researchResults, null, 2)}
-            </pre>
-          </ScrollArea>
-        </Card>
       )}
 
       {visibleSegments.length > 0 && (
@@ -244,15 +213,15 @@ export default function TranscriptionDisplay({
                       ? lastSegmentRef
                       : undefined
                   }
-                  className={`text-sm mb-2 p-2 rounded ${
+                  className={`text-sm mb-2 p-0 rounded ${
                     isActive
                       ? "bg-accent border-l-4 border-primary"
                       : "text-muted-foreground"
                   }`}
                 >
                   <span className='text-xs font-mono'>
-                    [{item.absoluteStartTime.toFixed(0)}s -{" "}
-                    {item.absoluteEndTime.toFixed(0)}s]
+                    [{formatTime(item.absoluteStartTime)} -{" "}
+                    {formatTime(item.absoluteEndTime)}]
                   </span>{" "}
                   {item.segment.text}
                 </div>
