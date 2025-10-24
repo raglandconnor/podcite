@@ -1,5 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import { researchStatements } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface TranscriptionSegment {
   start: number;
@@ -34,7 +39,10 @@ export default function TranscriptionDisplay({
   const activeSegmentRef = useRef<HTMLDivElement>(null);
   const prevActiveKeyRef = useRef<string | null>(null);
   const [selectedText, setSelectedText] = useState<string>("");
-  const [researchResults, setResearchResults] = useState<any>(null);
+  const [researchResults, setResearchResults] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [isResearching, setIsResearching] = useState(false);
 
   // Filter and flatten segments based on current time
@@ -158,105 +166,104 @@ export default function TranscriptionDisplay({
   }
 
   return (
-    <div className='mt-6'>
-      {isTranscribing && (
-        <div className='text-sm text-primary mb-2'>
-          Transcribing... ({chunks.length} chunks processed)
-        </div>
-      )}
+    <div>
+      <Separator className='my-4' />
+
+      <div className='flex items-center justify-between mb-3'>
+        <h3 className='font-medium text-sm'>Transcript</h3>
+        {isTranscribing && (
+          <Badge variant='secondary'>
+            Transcribing... {chunks.length} chunks
+          </Badge>
+        )}
+        {visibleSegments.length > 0 && !isTranscribing && (
+          <Badge variant='outline'>{visibleSegments.length} segments</Badge>
+        )}
+      </div>
 
       {error && (
-        <div className='text-sm text-destructive mb-2'>
+        <div className='text-sm text-destructive mb-3'>
           Transcription error: {error}
         </div>
       )}
 
-      {visibleSegments.length > 0 && (
-        <div className='flex items-center justify-between mb-2'>
-          <span className='text-sm text-muted-foreground'>
-            Transcript ({visibleSegments.length} segments)
-          </span>
-        </div>
-      )}
-
       {selectedText && (
-        <div className='mb-2 flex items-center gap-2'>
-          <button
-            onClick={handleResearch}
-            disabled={isResearching}
-            className='bg-primary text-primary-foreground text-sm px-4 py-2 rounded hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground'
-          >
-            {isResearching ? "Researching..." : "Research Selected Text"}
-          </button>
-          <span className='text-xs text-muted-foreground'>
-            "{selectedText.substring(0, 50)}
-            {selectedText.length > 50 ? "..." : ""}"
+        <div className='mb-3 flex items-center gap-2'>
+          <Button size='sm' onClick={handleResearch} disabled={isResearching}>
+            {isResearching ? "Researching..." : "Research Selected"}
+          </Button>
+          <span className='text-xs text-muted-foreground truncate'>
+            &quot;{selectedText.substring(0, 50)}
+            {selectedText.length > 50 ? "..." : ""}&quot;
           </span>
         </div>
       )}
 
       {researchResults && (
-        <div className='mb-4 bg-card border border-border rounded-md p-4 max-h-96 overflow-auto'>
+        <Card className='mb-3 p-4'>
           <div className='flex justify-between items-center mb-2'>
-            <h3 className='font-semibold text-sm text-card-foreground'>
-              Research Results
-            </h3>
-            <button
+            <h4 className='font-semibold text-sm'>Research Results</h4>
+            <Button
+              variant='ghost'
+              size='sm'
               onClick={() => setResearchResults(null)}
-              className='text-muted-foreground hover:text-foreground text-xs'
             >
               Close
-            </button>
+            </Button>
           </div>
-          <pre className='text-xs whitespace-pre-wrap break-words text-card-foreground'>
-            {JSON.stringify(researchResults, null, 2)}
-          </pre>
-        </div>
+          <ScrollArea className='h-96'>
+            <pre className='text-xs whitespace-pre-wrap break-words'>
+              {JSON.stringify(researchResults, null, 2)}
+            </pre>
+          </ScrollArea>
+        </Card>
       )}
 
       {visibleSegments.length > 0 && (
-        <div
-          ref={scrollContainerRef}
-          onMouseUp={handleTextSelection}
-          className='bg-muted p-4 rounded-md max-h-64 overflow-y-auto relative'
-        >
-          {visibleSegments.map((item, index) => {
-            const key = `${item.chunkIndex}-${item.segmentIndex}`;
-            const isLast = index === visibleSegments.length - 1;
-            const isActive = item.isActive;
-            return (
-              <div
-                key={key}
-                ref={
-                  isActive
-                    ? (node) => {
-                        if (node) activeSegmentRef.current = node;
-                        if (isLast)
-                          lastSegmentRef.current = node as HTMLDivElement;
-                      }
-                    : isLast
-                    ? lastSegmentRef
-                    : undefined
-                }
-                className={`text-sm mb-2 p-2 rounded ${
-                  isActive
-                    ? "bg-accent border-l-4 border-ring"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <div className='text-muted-foreground'>
-                  [{item.absoluteStartTime.toFixed(0)}s -{" "}
-                  {item.absoluteEndTime.toFixed(0)}s]
-                  <span>{item.segment.text}</span>
+        <div className='relative'>
+          <div
+            ref={scrollContainerRef}
+            onMouseUp={handleTextSelection}
+            className='h-[600px] rounded-md border p-4 overflow-y-auto'
+          >
+            {visibleSegments.map((item, index) => {
+              const key = `${item.chunkIndex}-${item.segmentIndex}`;
+              const isLast = index === visibleSegments.length - 1;
+              const isActive = item.isActive;
+              return (
+                <div
+                  key={key}
+                  ref={
+                    isActive
+                      ? (node) => {
+                          if (node) activeSegmentRef.current = node;
+                          if (isLast)
+                            lastSegmentRef.current = node as HTMLDivElement;
+                        }
+                      : isLast
+                      ? lastSegmentRef
+                      : undefined
+                  }
+                  className={`text-sm mb-2 p-2 rounded ${
+                    isActive
+                      ? "bg-accent border-l-4 border-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <span className='text-xs font-mono'>
+                    [{item.absoluteStartTime.toFixed(0)}s -{" "}
+                    {item.absoluteEndTime.toFixed(0)}s]
+                  </span>{" "}
+                  {item.segment.text}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
-          {/* Jump to live when not following */}
           {!isNearBottom && (
-            <div className='sticky bottom-0 left-0 flex justify-center pointer-events-none pt-4 bg-gradient-to-t from-muted via-muted/80 to-transparent'>
-              <button
+            <div className='absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none'>
+              <Button
+                size='sm'
                 onClick={() => {
                   const container = scrollContainerRef.current;
                   const target =
@@ -275,18 +282,17 @@ export default function TranscriptionDisplay({
                   container.scrollTo({ top: desiredTop, behavior: "smooth" });
                   setIsNearBottom(true);
                 }}
-                className='pointer-events-auto bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full shadow hover:bg-primary/90'
-                title='Jump to the current segment and resume following'
+                className='pointer-events-auto shadow-lg'
               >
                 Jump to live
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
       {chunks.length > 0 && visibleSegments.length === 0 && !isTranscribing && (
-        <div className='bg-muted p-4 rounded-md text-muted-foreground text-center'>
+        <div className='border rounded-md p-4 text-center text-sm text-muted-foreground'>
           Transcript will appear as audio plays...
         </div>
       )}

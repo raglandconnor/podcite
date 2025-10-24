@@ -1,6 +1,9 @@
 import { forwardRef } from "react";
 import AudioPlayer from "./AudioPlayer";
 import TranscriptionDisplay from "./TranscriptionDisplay";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { stripHtmlTags } from "@/lib/utils";
 
 interface TranscriptionChunk {
   chunk_index: number;
@@ -47,41 +50,57 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
     },
     ref
   ) => {
+    const cleanDescription = stripHtmlTags(description);
+
     return (
-      <div className='bg-card p-6 rounded-lg shadow border'>
-        <h2 className='text-xl font-semibold mb-4 text-card-foreground'>
-          Latest Episode
-        </h2>
-        <h3 className='font-semibold text-lg text-card-foreground'>{title}</h3>
-        <p className='text-muted-foreground mt-2'>{description}</p>
-        <div className='mt-4 grid grid-cols-2 gap-4 text-sm text-card-foreground'>
+      <Card>
+        <CardHeader>
+          <CardTitle>Latest Episode</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
           <div>
-            <span className='font-medium'>Published:</span> {publishedDate}
+            <h3 className='font-semibold text-lg'>{title}</h3>
+            <p className='text-muted-foreground mt-2 text-sm'>
+              {cleanDescription}
+            </p>
           </div>
-          <div>
-            <span className='font-medium'>Duration:</span>{" "}
-            {Math.floor(parseInt(duration) / 60)} minutes
+          <div className='grid grid-cols-2 gap-4 text-sm'>
+            <div>
+              <span className='font-medium'>Published:</span>{" "}
+              {new Date(publishedDate).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
+            {parseInt(duration) > 0 && (
+              <div>
+                <span className='font-medium'>Duration:</span>{" "}
+                {Math.floor(parseInt(duration) / 60)} min
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Audio Player */}
-        {audioDownload.status === "success" && audioDownload.filename && (
-          <AudioPlayer
-            ref={ref}
-            filename={audioDownload.filename}
-            contentType={audioDownload.contentType}
-            onPlay={onAudioPlay}
+          {audioDownload.status === "success" && audioDownload.filename && (
+            <>
+              <Separator />
+              <AudioPlayer
+                ref={ref}
+                filename={audioDownload.filename}
+                contentType={audioDownload.contentType}
+                onPlay={onAudioPlay}
+              />
+            </>
+          )}
+
+          <TranscriptionDisplay
+            chunks={transcription.chunks}
+            isTranscribing={transcription.isTranscribing}
+            error={transcription.error}
+            currentTime={currentTime}
           />
-        )}
-
-        {/* Transcription Display */}
-        <TranscriptionDisplay
-          chunks={transcription.chunks}
-          isTranscribing={transcription.isTranscribing}
-          error={transcription.error}
-          currentTime={currentTime}
-        />
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 );

@@ -9,8 +9,8 @@ interface AudioPlayerProps {
 const AudioPlayer = forwardRef<HTMLAudioElement, AudioPlayerProps>(
   ({ filename, contentType, onPlay }, ref) => {
     return (
-      <div className='mt-6'>
-        <h3 className='font-medium mb-3'>Listen to Episode</h3>
+      <div>
+        <h3 className='font-medium mb-3 text-sm'>Listen to Episode</h3>
         <audio
           ref={ref}
           controls

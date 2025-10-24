@@ -67,10 +67,15 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(0);
   const prevTimeRef = useRef(0);
 
-  const [notableContext, setNotableContext] = useState({
-    data: null as any,
+  const [notableContext, setNotableContext] = useState<{
+    data: { notable_context?: string[] } | null;
+    isLoading: boolean;
+    error: string | null;
+    lastExtractedTime: number;
+  }>({
+    data: null,
     isLoading: false,
-    error: null as string | null,
+    error: null,
     lastExtractedTime: -1,
   });
 
@@ -203,7 +208,7 @@ export default function Home() {
       }
     };
 
-    eventSource.onerror = (error) => {
+    eventSource.onerror = () => {
       setTranscription((prev) => ({
         ...prev,
         error: "Connection error during transcription",
@@ -411,11 +416,14 @@ export default function Home() {
   }, [transcription.stream]);
 
   return (
-    <div className='min-h-screen p-8 bg-background'>
-      <div className='max-w-7xl mx-auto'>
-        <h1 className='text-3xl font-bold text-foreground mb-8'>
-          Podcast RSS Parser
-        </h1>
+    <div className='min-h-screen p-8'>
+      <div className='max-w-7xl mx-auto space-y-8'>
+        <div>
+          <h1 className='text-3xl font-bold mb-2'>Podcast Source Listener</h1>
+          <p className='text-muted-foreground'>
+            Parse RSS feeds and extract context from podcast episodes
+          </p>
+        </div>
 
         <RSSInputForm
           rssUrl={rssUrl}
@@ -425,14 +433,13 @@ export default function Home() {
         />
 
         {error && (
-          <div className='mb-6 p-4 bg-destructive/10 border border-destructive text-destructive rounded-md'>
+          <div className='p-4 border border-destructive/20 bg-destructive/10 text-destructive rounded-md'>
             Error: {error}
           </div>
         )}
 
         {data && (
           <div className='space-y-6'>
-            {/* Podcast Info */}
             <PodcastInfo
               title={data.podcast.title}
               description={data.podcast.description}
@@ -441,35 +448,28 @@ export default function Home() {
               totalEpisodes={data.total_episodes_in_feed}
             />
 
-            {/* Main Content Grid */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-              {/* Episode Info & Player */}
-              <div>
-                <EpisodeInfo
-                  ref={audioRef}
-                  title={data.episode.title}
-                  description={data.episode.description}
-                  publishedDate={data.episode.published_date}
-                  duration={data.episode.duration}
-                  audioDownload={{
-                    status: data.audio_download.status,
-                    filename: data.audio_download.filename,
-                    contentType: data.audio_download.content_type,
-                  }}
-                  transcription={transcription}
-                  onAudioPlay={handleAudioPlay}
-                  currentTime={currentTime}
-                />
-              </div>
+              <EpisodeInfo
+                ref={audioRef}
+                title={data.episode.title}
+                description={data.episode.description}
+                publishedDate={data.episode.published_date}
+                duration={data.episode.duration}
+                audioDownload={{
+                  status: data.audio_download.status,
+                  filename: data.audio_download.filename,
+                  contentType: data.audio_download.content_type,
+                }}
+                transcription={transcription}
+                onAudioPlay={handleAudioPlay}
+                currentTime={currentTime}
+              />
 
-              {/* Notable Context Panel */}
-              <div className='bg-card p-6 rounded-lg shadow border'>
-                <NotableContextDisplay
-                  context={notableContext.data}
-                  isLoading={notableContext.isLoading}
-                  error={notableContext.error}
-                />
-              </div>
+              <NotableContextDisplay
+                context={notableContext.data}
+                isLoading={notableContext.isLoading}
+                error={notableContext.error}
+              />
             </div>
           </div>
         )}

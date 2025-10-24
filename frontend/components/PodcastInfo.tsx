@@ -1,3 +1,7 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { stripHtmlTags } from "@/lib/utils";
+
 interface PodcastInfoProps {
   title: string;
   description: string;
@@ -10,32 +14,35 @@ export default function PodcastInfo({
   title,
   description,
   imageUrl,
-  rssUrl,
   totalEpisodes,
 }: PodcastInfoProps) {
+  const cleanDescription = stripHtmlTags(description);
   return (
-    <div className='bg-card p-6 rounded-lg shadow border'>
-      <h2 className='text-xl font-semibold mb-4 text-card-foreground'>
-        Podcast
-      </h2>
-      <div className='flex gap-4'>
-        {imageUrl && (
-          <img
-            src={imageUrl}
-            alt='Podcast cover'
-            className='w-24 h-24 rounded-lg object-cover'
-          />
-        )}
-        <div>
-          <h3 className='font-semibold text-lg text-card-foreground'>
-            {title}
-          </h3>
-          <p className='text-muted-foreground mt-2'>{description}</p>
-          <p className='text-sm text-muted-foreground mt-2'>
-            Total episodes: {totalEpisodes}
-          </p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Podcast</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className='flex gap-4'>
+          {imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageUrl}
+              alt='Podcast cover'
+              className='w-24 h-24 rounded-sm object-cover'
+            />
+          )}
+          <div className='flex-1'>
+            <h3 className='font-semibold text-lg'>{title}</h3>
+            <p className='text-muted-foreground mt-2 text-sm'>
+              {cleanDescription}
+            </p>
+            <Badge variant='secondary' className='mt-2'>
+              {totalEpisodes} episodes
+            </Badge>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
