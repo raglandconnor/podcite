@@ -1,7 +1,7 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { ResearchItem } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import ResearchCard from "./ResearchCard";
@@ -12,13 +12,55 @@ interface ResearchPanelProps {
 
 export default function ResearchPanel({ items }: ResearchPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const itemsJsonRef = useRef<string>("");
 
-  // Auto-scroll to bottom when new items are added
+  // Detect manual scrolling and track near-bottom
   useEffect(() => {
-    if (bottomRef.current && items.length > 0) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const threshold = 64;
+      const nearBottom =
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - threshold;
+      setIsNearBottom(nearBottom);
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    // Initialize near-bottom on mount
+    handleScroll();
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom when items change (new items or status updates)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const bottom = bottomRef.current;
+    if (!container || !bottom || items.length === 0) return;
+
+    // Serialize items to detect any changes (new items, status changes, result additions)
+    const currentItemsJson = JSON.stringify(
+      items.map((item) => ({
+        id: item.id,
+        status: item.status,
+        hasResults: !!item.results,
+      }))
+    );
+
+    // Only proceed if items actually changed
+    if (itemsJsonRef.current === currentItemsJson) return;
+    itemsJsonRef.current = currentItemsJson;
+
+    // If near bottom, scroll to maintain bottom position
+    if (isNearBottom) {
+      requestAnimationFrame(() => {
+        bottom.scrollIntoView({ behavior: "smooth", block: "end" });
+      });
     }
-  }, [items.length]);
+  }, [items, isNearBottom]);
 
   const completedCount = items.filter(
     (item) => item.status === "completed"
@@ -44,9 +86,16 @@ export default function ResearchPanel({ items }: ResearchPanelProps) {
     );
   }
 
+  const handleJumpToLive = () => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+      setIsNearBottom(true);
+    }
+  };
+
   return (
-    <Card className='h-full flex flex-col overflow-hidden'>
-      <CardHeader className='sticky top-0 bg-background z-10'>
+    <Card className='flex flex-col overflow-hidden max-h-[calc(100vh-14rem)]'>
+      <CardHeader className='flex-shrink-0'>
         <div className='flex items-center justify-between gap-2'>
           <CardTitle className='text-base'>Research</CardTitle>
           <div className='flex items-center gap-1.5 flex-wrap'>
@@ -68,14 +117,38 @@ export default function ResearchPanel({ items }: ResearchPanelProps) {
         </div>
       </CardHeader>
 
-      <ScrollArea className='flex-1'>
-        <CardContent className='space-y-1.5'>
-          {items.map((item) => (
-            <ResearchCard key={item.id} item={item} defaultOpen={true} />
-          ))}
-          <div ref={bottomRef} />
-        </CardContent>
-      </ScrollArea>
+      <CardContent className='flex-1 relative flex flex-col min-h-0 p-0 overflow-hidden'>
+        <div ref={scrollContainerRef} className='flex-1 overflow-y-auto px-6'>
+          <div className='space-y-1.5 pt-2'>
+            {items.map((item, index) => {
+              const isLastCompleted =
+                item.status === "completed" &&
+                index === items.findLastIndex((i) => i.status === "completed");
+
+              return (
+                <ResearchCard
+                  key={item.id}
+                  item={item}
+                  defaultOpen={isLastCompleted}
+                />
+              );
+            })}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+
+        {!isNearBottom && items.length > 0 && (
+          <div className='absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none'>
+            <Button
+              size='sm'
+              onClick={handleJumpToLive}
+              className='pointer-events-auto shadow-lg'
+            >
+              Jump to live
+            </Button>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

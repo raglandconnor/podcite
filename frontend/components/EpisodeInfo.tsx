@@ -55,18 +55,18 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
     const cleanDescription = stripHtmlTags(description);
 
     return (
-      <Card>
-        <CardHeader>
+      <Card className='flex flex-col overflow-hidden max-h-[calc(100vh-12rem)]'>
+        <CardHeader className='flex-shrink-0'>
           <CardTitle>Latest Episode</CardTitle>
         </CardHeader>
-        <CardContent className='space-y-4'>
-          <div>
+        <CardContent className='flex-1 flex flex-col space-y-4 overflow-y-auto min-h-0'>
+          <div className='flex-shrink-0'>
             <h3 className='font-semibold text-lg'>{title}</h3>
             <p className='text-muted-foreground mt-2 text-sm'>
               {cleanDescription}
             </p>
           </div>
-          <div className='grid grid-cols-2 gap-4 text-sm'>
+          <div className='grid grid-cols-2 gap-4 text-sm flex-shrink-0'>
             <div>
               <span className='font-medium'>Published:</span>{" "}
               {new Date(publishedDate).toLocaleDateString("en-US", {
@@ -84,15 +84,17 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
           </div>
 
           {audioDownload.status === "success" && audioDownload.filename && (
-            <>
+            <div className='flex-shrink-0'>
               <Separator />
-              <AudioPlayer
-                ref={ref}
-                filename={audioDownload.filename}
-                contentType={audioDownload.contentType}
-                onPlay={onAudioPlay}
-              />
-            </>
+              <div className='mt-4'>
+                <AudioPlayer
+                  ref={ref}
+                  filename={audioDownload.filename}
+                  contentType={audioDownload.contentType}
+                  onPlay={onAudioPlay}
+                />
+              </div>
+            </div>
           )}
 
           <TranscriptionDisplay
