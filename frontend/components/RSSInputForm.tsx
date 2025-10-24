@@ -26,7 +26,7 @@ export default function RSSInputForm({
           type='url'
           value={rssUrl}
           onChange={(e) => onRssUrlChange(e.target.value)}
-          placeholder='Enter RSS feed URL (e.g., https://feeds.megaphone.fm/GLT1412515089)'
+          placeholder='Enter RSS feed URL (e.g., https://anchor.fm/s/8c1524bc/podcast/rss)'
           disabled={loading}
           className='flex-1'
         />

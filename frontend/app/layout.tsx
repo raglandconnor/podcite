@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Podcast Source Listener",
+  title: "PodCite",
   description:
     "Parse podcast RSS feeds and extract notable context in real-time",
 };
