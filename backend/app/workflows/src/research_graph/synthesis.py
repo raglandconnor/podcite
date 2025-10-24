@@ -92,39 +92,48 @@ async def synthesize_statement(
     # Format search results into readable context
     context = _format_search_results(statement, search_results)
 
-    prompt = f"""You are an expert fact-checker analyzing sources to verify a statement made in a podcast.
+    prompt = f"""You are a research assistant analyzing sources to provide information about a query.
 
-STATEMENT TO VERIFY:
+QUERY:
 "{statement}"
 
 AVAILABLE SOURCES:
 {context}
 
 YOUR TASK:
-Analyze the sources above and determine if they verify, refute, or provide inconclusive evidence for the statement.
+Analyze the sources and determine whether this is:
+1. A factual claim that can be verified/refuted
+2. A term, concept, or topic that needs explanation
+3. A question seeking information
 
 VERDICT OPTIONS:
-- "verified": Sources strongly support the statement
-- "refuted": Sources contradict or disprove the statement
-- "partial": Sources partially support the statement or show mixed evidence
-- "inconclusive": Insufficient or unclear evidence
+- "verified": Sources strongly support a factual claim
+- "refuted": Sources contradict or disprove a factual claim
+- "partial": Sources partially support a claim or show mixed evidence
+- "inconclusive": This is informational (definition of a term) or insufficient evidence for verification
 
 CONFIDENCE SCORING (0.0 to 1.0):
-Consider these factors:
+For factual claims:
 - Source Authority: Academic papers (0.3), Government sources (0.25), Reputable news/orgs (0.2), General web (0.1)
 - Cross-Source Agreement: Multiple sources agree (0.3), Single source (0.1)
 - Specificity: Direct evidence (0.2), Related but indirect (0.1), Tangential (0.05)
 - Recency: Recent (0.15), Somewhat dated (0.1), Old (0.05)
 
+For informational queries (terms, concepts, questions):
+- Use "inconclusive" verdict with moderate confidence (0.4-0.7) based on source quality
+- Focus on explaining what the sources say about the topic
+
 SUMMARY REQUIREMENTS:
 - Keep to 1-2 sentences maximum
-- Focus on what the sources actually say
+- For factual claims: State what the sources say about the claim
+- For informational queries: Provide a concise explanation/definition based on sources
 - Be specific about findings
-- Do NOT just repeat the statement
+- Do NOT just repeat the query
 
 REASONING REQUIREMENTS:
 - Explain which sources were most relevant
-- Note agreement or disagreement between sources
+- For factual claims: Note agreement or disagreement between sources
+- For informational queries: Explain what information the sources provide
 - Justify confidence score
 - Mention any limitations or caveats
 
@@ -133,7 +142,7 @@ SOURCES LIST:
 - Include title and type (arxiv/web/legislation)
 - Explain each source's relevance in one sentence
 
-Be critical and precise. If sources don't directly address the statement, say so."""
+Be helpful and informative. If the query is asking for information rather than verification, provide that information from the sources."""
 
     try:
         result: StatementVerification = await synthesis_llm.ainvoke(prompt)

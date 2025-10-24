@@ -331,45 +331,64 @@ export default function Home() {
     setResearchItems((prev) => [...prev, newItem]);
   };
 
-  // Extract notable context automatically based on current playback position
+  // Extract notable context every 25 seconds during playback (process previous window)
   useEffect(() => {
     // Don't extract if no transcription chunks yet
     if (transcription.chunks.length === 0) return;
     // Don't extract if audio isn't playing
     if (!audioRef.current || audioRef.current.paused) return;
 
-    // Find the chunk that contains the current time
-    const currentChunk = transcription.chunks.find((chunk) => {
-      const segments = chunk.segments;
-      if (segments.length === 0) return false;
-      const firstSegmentTime = segments[0].start;
-      const lastSegmentTime = segments[segments.length - 1].end;
-      return currentTime >= firstSegmentTime && currentTime <= lastSegmentTime;
-    });
+    // Calculate which 25-second window to process (always the previous one)
+    const intervalToProcess = Math.floor((currentTime - 25) / 25) * 25;
 
-    if (!currentChunk) return;
+    // Only extract if we haven't processed this 25-second window yet
+    if (lastExtractedTime === intervalToProcess) {
+      return; // Already extracted for this interval
+    }
 
-    // Check if we've already extracted for this chunk
-    const chunkStartTime = currentChunk.segments[0].start;
-    if (Math.abs(lastExtractedTime - chunkStartTime) < 1) {
-      return; // Already extracted for this chunk
+    // Get transcription text for the 25-second window we're processing
+    const getTranscriptForInterval = (startTime: number, endTime: number) => {
+      const relevantSegments: string[] = [];
+
+      // Find segments that overlap with this time window
+      transcription.chunks.forEach((chunk) => {
+        chunk.segments.forEach((segment) => {
+          // Include segment if it overlaps with our 25-second window
+          if (segment.start < endTime && segment.end > startTime) {
+            relevantSegments.push(segment.text);
+          }
+        });
+      });
+
+      return relevantSegments.join(" ");
+    };
+
+    const intervalEnd = intervalToProcess + 20;
+    const transcriptText = getTranscriptForInterval(
+      intervalToProcess,
+      intervalEnd
+    );
+
+    // Only extract if we have transcript text for this interval
+    if (!transcriptText.trim()) {
+      return;
     }
 
     // Extract notable context
     const extractContext = async () => {
-      setLastExtractedTime(chunkStartTime);
+      setLastExtractedTime(intervalToProcess);
 
       try {
-        const result = await extractNotableContext(currentChunk.text);
+        const result = await extractNotableContext(transcriptText);
 
         // Add all questions as pending research items
         if (result.notable_context && Array.isArray(result.notable_context)) {
           const newItems: ResearchItem[] = result.notable_context.map(
             (question: string, idx: number) => ({
-              id: `notable-${chunkStartTime}-${idx}`,
+              id: `notable-${intervalToProcess}-${idx}`,
               question,
               type: "notable" as const,
-              timestamp: chunkStartTime,
+              timestamp: intervalToProcess,
               status: "pending" as const,
             })
           );

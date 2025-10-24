@@ -56,14 +56,17 @@ export default function ResearchCard({
             </Badge>
 
             {/* Verdict Badge */}
-            {item.status === "completed" && item.results && (
-              <Badge
-                variant='outline'
-                className={`${getVerdictColor(item.results.verdict)} text-xs`}
-              >
-                {item.results.verdict.toUpperCase()}
-              </Badge>
-            )}
+            {item.status === "completed" &&
+              item.results &&
+              item.results.verdict !== "inconclusive" &&
+              item.results.verdict !== "partial" && (
+                <Badge
+                  variant='outline'
+                  className={`${getVerdictColor(item.results.verdict)} text-xs`}
+                >
+                  {item.results.verdict.toUpperCase()}
+                </Badge>
+              )}
 
             {/* Researching Badge */}
             {item.status === "researching" && (
