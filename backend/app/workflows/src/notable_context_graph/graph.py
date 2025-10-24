@@ -1,4 +1,3 @@
-"""LangGraph notable context AI workflow pipeline. Extracts anything worthy of further research from the podcast transcript."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,25 +14,43 @@ load_dotenv()
 
 def _extract_notable_context(state: dict) -> dict:
     transcript = state["transcript"]
-    """Extract statements from transcript worthy of further research.
+    """Extract only high-value statements worthy of research.
     
-    Identifies claims, statistics, studies, references, and interesting statements
-    that would benefit from fact-checking or deeper investigation.
+    Applies strict criteria to identify only the most research-worthy claims.
+    Formats outputs as questions a listener would naturally ask.
     """
-    prompt = f"""Analyze this podcast transcript and extract any statements that would be worthy of further research or fact-checking.
+    prompt = f"""You are analyzing a podcast transcript to identify ONLY the most research-worthy statements that would genuinely benefit from fact-checking or deeper investigation.
 
-Look for:
-- Specific claims, statistics, or data points
-- References to studies, research, or experts
-- Historical events or facts
-- Companies, products, or technologies mentioned with specific details
-- Controversial or surprising statements
-- Causal claims (X causes Y)
+BE HIGHLY SELECTIVE. Extract ONLY statements that meet AT LEAST TWO of these criteria:
 
-Extract each notable statement as a concise, standalone phrase or sentence. Don't copy word-for-word unless necessary - rephrase for clarity while maintaining the key claim.
+1. **Specific, verifiable claims**: Concrete statistics, data points, or numerical claims (e.g., "70% increase in productivity")
+2. **Research citations**: Explicit mentions of studies, papers, universities, or research institutions
+3. **Expert or authority references**: Named experts, scientists, authors, or their specific work
+4. **Surprising/counterintuitive claims**: Statements that challenge common beliefs and would benefit from verification
+5. **Causal claims with significant implications**: Bold "X causes Y" statements that could be verified
+6. **Historical facts with specific details**: Dates, events, or historical claims that can be fact-checked
+7. **Vague references without specifics ("some studies show...")**: Statements that are not specific enough to be verified
+
+DO NOT extract:
+- General opinions or subjective statements
+- Common knowledge or widely accepted facts
+- Future predictions or speculation
+- Simple product descriptions or company mentions
+
+FORMAT: Phrase each extraction as a natural question a curious listener would ask while listening. The question should capture what the listener would want to research or verify.
+
+Examples:
+✅ "What study found that remote workers are 13% more productive?"
+✅ "Who is Dr. Sarah Chen and what is her research on AI safety?"
+✅ "Is it true that coffee consumption reduces Alzheimer's risk by 65%?"
+✗ "What do they think about remote work?" (too vague)
+✗ "What's their opinion on AI?" (subjective opinion)
+✗ "How does their product work?" (product description, not research-worthy)
 
 Transcript:
-{transcript}"""
+{transcript}
+
+Remember: Quality over quantity. Extract 0-5 questions maximum. If nothing meets the strict criteria, return an empty list."""
 
     result: NotableStatements = llm.invoke(prompt)
     return {
@@ -45,7 +62,7 @@ class NotableStatements(BaseModel):
     """Structured output for notable statements extraction."""
     
     statements: list[str] = Field(
-        description="List of notable statements from the transcript worthy of research"
+        description="List of research-worthy questions a listener would ask, formatted as natural questions. Maximum 5 questions. Can be empty if nothing meets criteria."
     )
 
 
@@ -61,9 +78,16 @@ class NotableStatements(BaseModel):
 
 @dataclass
 class State:
-    """Input state for the agent.
+    """Input and output state for the notable context extraction agent.
 
-    Defines the initial structure of incoming data.
+    Input:
+        transcript: Raw podcast transcript text to analyze
+        
+    Output:
+        notable_context: List of research-worthy questions (0-5) that a listener
+                        would naturally ask. Empty list if no statements meet 
+                        the strict extraction criteria.
+    
     See: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
     """
 
