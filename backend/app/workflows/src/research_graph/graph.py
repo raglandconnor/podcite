@@ -17,6 +17,7 @@ from app.workflows.src.research_graph.search import (
     brave_search,
     congress_search,
 )
+from app.workflows.src.research_graph.synthesis import synthesize_statement
 
 
 async def router_node(state: State) -> Dict[str, Any]:
@@ -120,6 +121,30 @@ async def aggregate_results_node(state: State) -> Dict[str, Any]:
     return {"search_results": all_results}
 
 
+async def synthesis_node(state: State) -> Dict[str, Any]:
+    """Synthesize search results to verify/refute each statement with confidence scoring."""
+    synthesized_results = []
+
+    # Group search results by statement
+    statements_with_results = {}
+    for statement in state.statements_to_research:
+        statements_with_results[statement] = []
+
+    # Collect all results for each statement
+    if state.search_results:
+        for result in state.search_results:
+            statement = result.get("statement", "")
+            if statement in statements_with_results:
+                statements_with_results[statement].append(result)
+
+    # Synthesize each statement
+    for statement, results in statements_with_results.items():
+        verification = await synthesize_statement(statement, results)
+        synthesized_results.append(verification)
+
+    return {"synthesized_results": synthesized_results}
+
+
 graph = (
     StateGraph(State)
     .add_node("router", router_node)
@@ -127,6 +152,7 @@ graph = (
     .add_node("arxiv_search", arxiv_search_node)
     .add_node("congress_search", congress_search_node)
     .add_node("aggregate", aggregate_results_node)
+    .add_node("synthesis", synthesis_node)
     .add_edge("__start__", "router")
     .add_edge("router", "brave_search")
     .add_edge("router", "arxiv_search")
@@ -134,6 +160,7 @@ graph = (
     .add_edge("brave_search", "aggregate")
     .add_edge("arxiv_search", "aggregate")
     .add_edge("congress_search", "aggregate")
-    .add_edge("aggregate", "__end__")
+    .add_edge("aggregate", "synthesis")
+    .add_edge("synthesis", "__end__")
     .compile(name="Research Pipeline")
 )

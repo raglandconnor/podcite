@@ -20,7 +20,7 @@ async def research_statements(request: ResearchRequest):
     """Execute research workflow on provided statements."""
     try:
         result = await graph.ainvoke({"statements_to_research": request.statements_to_research})
-        return {"search_results": result["search_results"]}
+        return {"synthesized_results": result["synthesized_results"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
