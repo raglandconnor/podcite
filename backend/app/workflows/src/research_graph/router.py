@@ -11,7 +11,7 @@ from app.workflows.src.research_graph.models import RoutingDecision
 load_dotenv()
 
 
-def route_statement(statement: str) -> List[str]:
+async def route_statement(statement: str) -> List[str]:
     """Use grok to determine which sources to query.
 
     Returns list of source names: ['brave', 'arxiv', 'congress']
@@ -34,7 +34,7 @@ Rules:
 - Include 'congress' only if the statement references US legislation, bills, policy, or congressional matters"""
 
     try:
-        result: RoutingDecision = routing_llm.invoke(prompt)
+        result: RoutingDecision = await routing_llm.ainvoke(prompt)
         sources = result.sources
 
         valid_sources = ["brave", "arxiv", "congress"]
@@ -46,7 +46,7 @@ Rules:
         return sources
 
     except Exception as e:
-        print(f"Routing error: {e}, falling back to brave search")
+        print(f"[ROUTER ERROR] Routing error: {e}, falling back to brave search")
         return ["brave"]
 
 

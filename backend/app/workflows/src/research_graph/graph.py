@@ -24,7 +24,7 @@ async def router_node(state: State) -> Dict[str, Any]:
     routing_decisions = []
 
     for statement in state.statements_to_research:
-        sources = route_statement(statement)
+        sources = await route_statement(statement)
         routing_decisions.append({"statement": statement, "sources": sources})
 
     return {"routing_decisions": routing_decisions}
@@ -68,6 +68,7 @@ async def arxiv_search_node(state: State) -> Dict[str, Any]:
                 results.append({
                     "statement": statement,
                     "source": "arxiv",
+                    "query_used": result.get("query_used", ""),
                     "results": result.get("results", []),
                 })
             except Exception as e:

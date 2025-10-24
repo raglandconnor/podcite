@@ -16,6 +16,17 @@ class RoutingDecision(BaseModel):
     )
 
 
+class ArxivQuery(BaseModel):
+    """Optimized arXiv search query."""
+
+    query: str = Field(
+        description="Optimized search query for arXiv API using field prefixes like ti: (title), abs: (abstract), au: (author), cat: (category)"
+    )
+    explanation: str = Field(
+        description="Brief explanation of how the query was optimized"
+    )
+
+
 @dataclass
 class State:
     """State for the research pipeline."""
