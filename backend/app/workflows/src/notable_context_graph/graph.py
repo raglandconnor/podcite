@@ -19,7 +19,7 @@ def _extract_notable_context(state: dict) -> dict:
     Applies strict criteria to identify only the most research-worthy claims.
     Formats outputs as questions a listener would naturally ask.
     """
-    prompt = f"""You are analyzing a podcast transcript to identify ONLY the most research-worthy statements that would genuinely benefit from fact-checking or deeper investigation.
+    prompt = f"""You are analyzing a podcast transcript to identify ONLY the most research-worthy statements that would genuinely benefit from fact-checking, deeper investigation, or clarification for complex concepts.
 
 BE HIGHLY SELECTIVE. Extract ONLY statements that meet AT LEAST TWO of these criteria:
 
@@ -30,22 +30,26 @@ BE HIGHLY SELECTIVE. Extract ONLY statements that meet AT LEAST TWO of these cri
 5. **Causal claims with significant implications**: Bold "X causes Y" statements that could be verified
 6. **Historical facts with specific details**: Dates, events, or historical claims that can be fact-checked
 7. **Vague references without specifics ("some studies show...")**: Statements that are not specific enough to be verified
+8. **Highly complex concepts**: Statements involving very difficult or niche technical, scientific, or academic concepts that are not commonly understood and would benefit from a quick summary or explanation (e.g., "quantum entanglement in neural networks")
 
 DO NOT extract:
 - General opinions or subjective statements
 - Common knowledge or widely accepted facts
 - Future predictions or speculation
 - Simple product descriptions or company mentions
+- Complex concepts that are relatively well-known or easily understood by a general audience
 
-FORMAT: Phrase each extraction as a natural question a curious listener would ask while listening. The question should capture what the listener would want to research or verify.
+FORMAT: Phrase each extraction as a natural question a curious listener would ask while listening. The question should capture what the listener would want to research, verify, or have explained.
 
 Examples:
 ✅ "What study found that remote workers are 13% more productive?"
 ✅ "Who is Dr. Sarah Chen and what is her research on AI safety?"
 ✅ "Is it true that coffee consumption reduces Alzheimer's risk by 65%?"
+✅ "What is quantum entanglement in neural networks and how does it work?"
 ✗ "What do they think about remote work?" (too vague)
 ✗ "What's their opinion on AI?" (subjective opinion)
 ✗ "How does their product work?" (product description, not research-worthy)
+✗ "What is gravity?" (commonly understood concept)
 
 Transcript:
 {transcript}
@@ -56,7 +60,6 @@ Remember: Quality over quantity. Extract 0-5 questions maximum. If nothing meets
     return {
         "notable_context": result.statements
     }
-
 
 class NotableStatements(BaseModel):
     """Structured output for notable statements extraction."""
