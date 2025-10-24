@@ -57,7 +57,8 @@ export default function ResearchPanel({ items }: ResearchPanelProps) {
     // If near bottom, scroll to maintain bottom position
     if (isNearBottom) {
       requestAnimationFrame(() => {
-        bottom.scrollIntoView({ behavior: "smooth", block: "end" });
+        // Use scrollTop to scroll the container, not the whole page
+        container.scrollTop = container.scrollHeight - container.clientHeight;
       });
     }
   }, [items, isNearBottom]);
@@ -94,7 +95,7 @@ export default function ResearchPanel({ items }: ResearchPanelProps) {
   };
 
   return (
-    <Card className='flex flex-col overflow-hidden max-h-[calc(100vh-14rem)]'>
+    <Card className='flex flex-col overflow-hidden h-[calc(100vh-12rem)]'>
       <CardHeader className='flex-shrink-0'>
         <div className='flex items-center justify-between gap-2'>
           <CardTitle className='text-base'>Research</CardTitle>
@@ -120,19 +121,9 @@ export default function ResearchPanel({ items }: ResearchPanelProps) {
       <CardContent className='flex-1 relative flex flex-col min-h-0 p-0 overflow-hidden'>
         <div ref={scrollContainerRef} className='flex-1 overflow-y-auto px-6'>
           <div className='space-y-1.5 pt-2'>
-            {items.map((item, index) => {
-              const isLastCompleted =
-                item.status === "completed" &&
-                index === items.findLastIndex((i) => i.status === "completed");
-
-              return (
-                <ResearchCard
-                  key={item.id}
-                  item={item}
-                  defaultOpen={isLastCompleted}
-                />
-              );
-            })}
+            {items.map((item) => (
+              <ResearchCard key={item.id} item={item} defaultOpen={true} />
+            ))}
             <div ref={bottomRef} />
           </div>
         </div>

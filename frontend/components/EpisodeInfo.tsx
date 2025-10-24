@@ -55,7 +55,7 @@ const EpisodeInfo = forwardRef<HTMLAudioElement, EpisodeInfoProps>(
     const cleanDescription = stripHtmlTags(description);
 
     return (
-      <Card className='flex flex-col overflow-hidden max-h-[calc(100vh-12rem)]'>
+      <Card className='flex flex-col overflow-hidden h-[calc(100vh-12rem)]'>
         <CardHeader className='flex-shrink-0'>
           <CardTitle>Latest Episode</CardTitle>
         </CardHeader>
