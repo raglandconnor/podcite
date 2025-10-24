@@ -92,6 +92,7 @@ async def congress_search_node(state: State) -> Dict[str, Any]:
                 results.append({
                     "statement": statement,
                     "source": "congress",
+                    "query_used": result.get("query_used", ""),
                     "results": result.get("results", []),
                 })
             except Exception as e:

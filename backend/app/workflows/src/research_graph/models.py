@@ -27,6 +27,17 @@ class ArxivQuery(BaseModel):
     )
 
 
+class CongressQuery(BaseModel):
+    """Optimized Congress.gov search query."""
+
+    query: str = Field(
+        description="Optimized search query for Congress.gov API using search operators like AND, OR, NOT, quotes for exact phrases, wildcards (*), and proximity searches (~N)"
+    )
+    explanation: str = Field(
+        description="Brief explanation of how the query was optimized and which operators were used"
+    )
+
+
 @dataclass
 class State:
     """State for the research pipeline."""
