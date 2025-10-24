@@ -37,8 +37,3 @@ class RSSParseResponse(BaseModel):
     episode: Episode
     total_episodes_in_feed: int
     audio_download: AudioDownloadResponse
-
-
-class HealthResponse(BaseModel):
-    """Health check response model."""
-    status: str

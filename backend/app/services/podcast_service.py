@@ -13,6 +13,7 @@ import feedparser
 from ..core.config import http_client, settings
 from ..models.podcast import AudioDownloadResponse, Episode, PodcastInfo, RSSParseResponse
 from ..utils.file_utils import create_safe_filename
+from ..services.transcription_service import transcription_service
 
 
 async def parse_rss_feed(url: str, episode_index: int) -> RSSParseResponse:
@@ -90,7 +91,7 @@ def _extract_episode_info(entry, episode_index: int) -> Episode:
 
 
 async def download_audio(audio_url: str) -> AudioDownloadResponse:
-    """Download audio file from URL."""
+    """Download audio file from URL and prepare chunks for transcription."""
     if not audio_url:
         return AudioDownloadResponse(status="error", error="No audio URL found in RSS feed")
 
@@ -125,6 +126,12 @@ async def download_audio(audio_url: str) -> AudioDownloadResponse:
 
         async with aiofiles.open(file_path, 'wb') as f:
             await f.write(response.content)
+
+        # Pre-chunk the audio file immediately after download
+        print(f"Preparing audio chunks for {filename}...")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, transcription_service.prepare_audio_chunks, filename)
+        print(f"Audio chunks prepared for {filename}")
 
         return AudioDownloadResponse(
             status="success",

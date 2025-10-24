@@ -2,7 +2,6 @@
 from .podcast import (
     AudioDownloadResponse,
     Episode,
-    HealthResponse,
     PodcastInfo,
     RSSParseResponse,
 )
@@ -10,7 +9,6 @@ from .podcast import (
 __all__ = [
     "AudioDownloadResponse",
     "Episode",
-    "HealthResponse",
     "PodcastInfo",
     "RSSParseResponse",
 ]
