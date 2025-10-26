@@ -2,6 +2,10 @@
 
 A real-time podcast analysis tool that automatically transcribes audio and extracts notable context, claims, and references as you listen. The application processes podcast content to identify significant statements for multi-source verification. Additionally, users can manually select specific transcript segments to trigger in-depth research workflows.
 
+## Demo
+
+[![PodCite Demo](https://img.youtube.com/vi/wtbKSqlfdU0/0.jpg)](https://youtu.be/wtbKSqlfdU0)
+
 ## Features
 
 - **RSS Feed Processing** - Parse podcast feeds and download episodes
