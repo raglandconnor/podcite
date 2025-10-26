@@ -6,6 +6,8 @@ A real-time podcast analysis tool that automatically transcribes audio and extra
 
 [![PodCite Demo](https://img.youtube.com/vi/wtbKSqlfdU0/0.jpg)](https://youtu.be/wtbKSqlfdU0)
 
+[Link](https://youtu.be/wtbKSqlfdU0)
+
 ## Features
 
 - **RSS Feed Processing** - Parse podcast feeds and download episodes
